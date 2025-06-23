@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "coverage": "SOLIDITY_COVERAGE=true hardhat coverage"
   }
 }
