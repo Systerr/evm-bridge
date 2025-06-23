@@ -5,6 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SuperTokenB is ERC20, Ownable {
+    /**simple addong to ownable */
     address private _relay;
 
     constructor(
@@ -13,6 +14,9 @@ contract SuperTokenB is ERC20, Ownable {
         _mint(msg.sender, initialSupply);
     }
 
+    /* @dev Event for new relay set
+     * @param newRelay new relay address
+     */
     event RelaySet(address indexed newRelay);
 
     /**
