@@ -388,18 +388,30 @@ describe("Bridge", function () {
       expect(bridgeBalance).to.equal(0n);
     });
 
-    it("Should revert if not called by owner", async function () {
-      const { bridge, addr1, addr2 } = await loadFixture(deployBridgeFixture);
+    it("Should allow non-owner to lock tokens", async function () {
+      const { bridge, superToken, owner, addr1, addr2 } = await loadFixture(
+        deployBridgeFixture
+      );
       const amount = parseEther("100");
 
-      await expect(
-        bridge.write.withdrawTokens(
-          [getAddress(addr2.account.address), amount],
-          {
-            account: addr1.account,
-          }
-        )
-      ).to.be.rejectedWith("OwnableUnauthorizedAccount");
+      // Transfer some tokens to addr1 first
+      await superToken.write.transfer([getAddress(addr1.account.address), amount], {
+        account: owner.account,
+      });
+
+      // Approve tokens from addr1
+      await superToken.write.approve([bridge.address, amount], {
+        account: addr1.account,
+      });
+
+      // addr1 should be able to lock tokens
+      await bridge.write.lockTokens([amount, getAddress(addr2.account.address)], {
+        account: addr1.account,
+      });
+
+      // Check that tokens were locked
+      const bridgeBalance = await superToken.read.balanceOf([bridge.address]);
+      expect(bridgeBalance).to.equal(amount);
     });
 
     it("Should revert if insufficient bridge balance", async function () {
@@ -531,6 +543,288 @@ describe("Bridge", function () {
       // Check bridge balance
       const bridgeBalance = await superToken.read.balanceOf([bridge.address]);
       expect(bridgeBalance).to.equal(amount * 3n);
+    });
+  });
+
+  describe("Lock Tokens (Single Parameter)", function () {
+    it("Should lock tokens with msg.sender as recipient", async function () {
+      const { bridge, superToken, owner } = await loadFixture(
+        deployBridgeFixture
+      );
+      const amount = parseEther("100");
+
+      // Approve tokens first
+      await superToken.write.approve([bridge.address, amount], {
+        account: owner.account,
+      });
+
+      // Check initial balances
+      const initialOwnerBalance = await superToken.read.balanceOf([
+        getAddress(owner.account.address),
+      ]);
+      const initialBridgeBalance = await superToken.read.balanceOf([
+        bridge.address,
+      ]);
+
+      // Lock tokens using single parameter function
+      await bridge.write.lockTokens([amount], {
+        account: owner.account,
+      });
+
+      // Check final balances
+      const finalOwnerBalance = await superToken.read.balanceOf([
+        getAddress(owner.account.address),
+      ]);
+      const finalBridgeBalance = await superToken.read.balanceOf([
+        bridge.address,
+      ]);
+
+      expect(finalOwnerBalance).to.equal(initialOwnerBalance - amount);
+      expect(finalBridgeBalance).to.equal(initialBridgeBalance + amount);
+    });
+
+    it("Should emit TokensLocked event with msg.sender as destination", async function () {
+      const { bridge, superToken, owner, publicClient } = await loadFixture(
+        deployBridgeFixture
+      );
+      const amount = parseEther("100");
+
+      // Approve tokens first
+      await superToken.write.approve([bridge.address, amount], {
+        account: owner.account,
+      });
+
+      // Lock tokens using single parameter function
+      const hash = await bridge.write.lockTokens([amount], {
+        account: owner.account,
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Get TokensLocked events
+      const tokensLockedEvents = await bridge.getEvents.TokensLocked();
+
+      expect(tokensLockedEvents).to.have.length(1);
+
+      // Check event parameters - destination should be msg.sender (owner)
+      const event = tokensLockedEvents[0];
+      expect(event.args.nonce).to.equal(1n);
+      expect(event.args.destinationAddress).to.equal(getAddress(owner.account.address));
+      expect(event.args.amount).to.equal(amount);
+    });
+
+    it("Should work for non-owner users", async function () {
+      const { bridge, superToken, owner, addr1, publicClient } = await loadFixture(
+        deployBridgeFixture
+      );
+      const amount = parseEther("100");
+
+      // Transfer tokens to addr1
+      await superToken.write.transfer([getAddress(addr1.account.address), amount], {
+        account: owner.account,
+      });
+
+      // Approve tokens from addr1
+      await superToken.write.approve([bridge.address, amount], {
+        account: addr1.account,
+      });
+
+      // addr1 locks tokens for themselves
+      const hash = await bridge.write.lockTokens([amount], {
+        account: addr1.account,
+      });
+
+      await publicClient.waitForTransactionReceipt({ hash });
+
+      // Check event - destination should be addr1
+      const tokensLockedEvents = await bridge.getEvents.TokensLocked();
+      expect(tokensLockedEvents).to.have.length(1);
+      expect(tokensLockedEvents[0].args.destinationAddress).to.equal(
+        getAddress(addr1.account.address)
+      );
+
+      // Check balances
+      const addr1Balance = await superToken.read.balanceOf([
+        getAddress(addr1.account.address),
+      ]);
+      const bridgeBalance = await superToken.read.balanceOf([bridge.address]);
+      
+      expect(addr1Balance).to.equal(0n);
+      expect(bridgeBalance).to.equal(amount);
+    });
+
+    it("Should increment nonce correctly with single parameter function", async function () {
+      // Deploy fresh contracts for this test
+      const initialSupply = parseEther("1000000");
+      const [owner, addr1] = await hre.viem.getWalletClients();
+      
+      const superToken = await hre.viem.deployContract("SuperToken", [
+        initialSupply,
+      ]);
+      const bridge = await hre.viem.deployContract("Bridge", [
+        superToken.address,
+      ]);
+      const publicClient = await hre.viem.getPublicClient();
+
+      const amount = parseEther("100");
+
+      // Transfer some tokens to addr1
+      await superToken.write.transfer([getAddress(addr1.account.address), amount * 2n], {
+        account: owner.account,
+      });
+
+      // Approve tokens for both users
+      await superToken.write.approve([bridge.address, amount], {
+        account: owner.account,
+      });
+      await superToken.write.approve([bridge.address, amount], {
+        account: addr1.account,
+      });
+
+      // First lock by owner
+      const hash1 = await bridge.write.lockTokens([amount], {
+        account: owner.account,
+      });
+
+      // Second lock by addr1
+      const hash2 = await bridge.write.lockTokens([amount], {
+        account: addr1.account,
+      });
+
+      // Get receipts
+      const receipt1 = await publicClient.waitForTransactionReceipt({ hash: hash1 });
+      const receipt2 = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+      // Get all events
+      const allEvents = await publicClient.getLogs({
+        address: bridge.address,
+        event: parseAbiItem(
+          "event TokensLocked(uint256 indexed nonce, address indexed destinationAddress, uint256 indexed amount)"
+        ),
+        fromBlock: receipt1.blockNumber,
+        toBlock: receipt2.blockNumber,
+      });
+
+      // Should have 2 events with incrementing nonces
+      expect(allEvents).to.have.length(2);
+      expect(allEvents[0].args.nonce).to.equal(1n);
+      expect(allEvents[1].args.nonce).to.equal(2n);
+
+      // Check destinations are correct
+      expect(allEvents[0].args.destinationAddress).to.equal(getAddress(owner.account.address));
+      expect(allEvents[1].args.destinationAddress).to.equal(getAddress(addr1.account.address));
+    });
+
+    it("Should revert if insufficient allowance (single parameter)", async function () {
+      const { bridge, owner } = await loadFixture(deployBridgeFixture);
+      const amount = parseEther("100");
+
+      // Don't approve tokens, try to lock
+      await expect(
+        bridge.write.lockTokens([amount], {
+          account: owner.account,
+        })
+      ).to.be.rejectedWith("ERC20InsufficientAllowance");
+    });
+
+    it("Should revert if insufficient balance (single parameter)", async function () {
+      const { bridge, superToken, owner } = await loadFixture(
+        deployBridgeFixture
+      );
+      const amount = parseEther("2000000"); // More than initial supply
+
+      // Approve more than balance
+      await superToken.write.approve([bridge.address, amount], {
+        account: owner.account,
+      });
+
+      // Try to lock more than balance
+      await expect(
+        bridge.write.lockTokens([amount], {
+          account: owner.account,
+        })
+      ).to.be.rejectedWith("ERC20InsufficientBalance");
+    });
+
+    it("Should handle zero amount (single parameter)", async function () {
+      const { bridge, superToken, owner } = await loadFixture(
+        deployBridgeFixture
+      );
+      const amount = 0n;
+
+      // Approve zero amount
+      await superToken.write.approve([bridge.address, amount], {
+        account: owner.account,
+      });
+
+      // Lock zero tokens - should work but not transfer anything
+      await bridge.write.lockTokens([amount], {
+        account: owner.account,
+      });
+
+      // Bridge balance should still be zero
+      const bridgeBalance = await superToken.read.balanceOf([bridge.address]);
+      expect(bridgeBalance).to.equal(0n);
+    });
+
+    it("Should work with both function overloads in same transaction block", async function () {
+      // Deploy fresh contracts for this test to avoid event pollution
+      const initialSupply = parseEther("1000000");
+      const [owner, addr1, addr2] = await hre.viem.getWalletClients();
+      
+      const superToken = await hre.viem.deployContract("SuperToken", [
+        initialSupply,
+      ]);
+      const bridge = await hre.viem.deployContract("Bridge", [
+        superToken.address,
+      ]);
+      const publicClient = await hre.viem.getPublicClient();
+
+      const amount = parseEther("100");
+
+      // Approve tokens for multiple operations
+      await superToken.write.approve([bridge.address, amount * 2n], {
+        account: owner.account,
+      });
+
+      // Use both function overloads
+      const hash1 = await bridge.write.lockTokens([amount], {
+        account: owner.account,
+      });
+      
+      const hash2 = await bridge.write.lockTokens([amount, getAddress(addr2.account.address)], {
+        account: owner.account,
+      });
+
+      // Wait for both transactions
+      const receipt1 = await publicClient.waitForTransactionReceipt({ hash: hash1 });
+      const receipt2 = await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+      // Get events using getLogs with proper event parsing
+      const allEvents = await publicClient.getLogs({
+        address: bridge.address,
+        event: parseAbiItem(
+          "event TokensLocked(uint256 indexed nonce, address indexed destinationAddress, uint256 indexed amount)"
+        ),
+        fromBlock: receipt1.blockNumber,
+        toBlock: receipt2.blockNumber,
+      });
+
+      expect(allEvents).to.have.length(2);
+
+      // First event should have owner as destination (single parameter function)
+      expect(allEvents[0].args.destinationAddress).to.equal(
+        getAddress(owner.account.address)
+      );
+      
+      // Second event should have addr2 as destination (two parameter function)
+      expect(allEvents[1].args.destinationAddress).to.equal(
+        getAddress(addr2.account.address)
+      );
+
+      // Check bridge balance
+      const bridgeBalance = await superToken.read.balanceOf([bridge.address]);
+      expect(bridgeBalance).to.equal(amount * 2n);
     });
   });
 

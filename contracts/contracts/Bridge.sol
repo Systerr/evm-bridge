@@ -45,13 +45,23 @@ contract Bridge is Ownable {
         superToken = superTokenAddress;
     }
 
-    function lockTokens(
-        uint256 amount,
-        address recipientOnChainB
-    ) public {
+    /**
+     * @dev main function to lock token in one chain
+     * @param amount token amount
+     * @param recipientOnChainB recepient address on second
+     */
+    function lockTokens(uint256 amount, address recipientOnChainB) public {
         IERC20(superToken).transferFrom(msg.sender, address(this), amount);
         _currentNonce += 1; // we will start from 1 not 0
         emit TokensLocked(_currentNonce, recipientOnChainB, amount);
+    }
+
+    /**
+     * @dev fast version of lockTokens.
+     * @param amount token amount
+     */
+    function lockTokens(uint256 amount) public {
+        return lockTokens(amount, msg.sender);
     }
 
     /**
