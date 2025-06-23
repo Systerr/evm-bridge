@@ -8,8 +8,6 @@
 
 Part of code (expecially tests) generated uses AI (cline + different model). All AI code was revieved by humans
 
-TODO
-
 # CI
 
 Repo contains github code to run tests and check styles on each push. This is a good approach to have CI with tests and codestyle on each push
