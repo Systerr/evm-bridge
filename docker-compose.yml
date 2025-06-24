@@ -1,0 +1,18 @@
+services:
+  chain-a:
+    image: ghcr.io/foundry-rs/foundry:latest
+    environment:
+      ANVIL_IP_ADDR: "0.0.0.0"
+    working_dir: /anvil
+    ports:
+      - "8545:8545"
+    command: anvil
+
+  chain-b:
+    image: "ghcr.io/foundry-rs/foundry:latest"
+    environment:
+      ANVIL_IP_ADDR: "0.0.0.0"
+    working_dir: /anvil
+    ports:
+      - "8546:8545"
+    command: anvil
