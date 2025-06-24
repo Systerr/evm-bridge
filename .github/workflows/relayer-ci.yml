@@ -21,14 +21,14 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
-          cache-dependency-path: "bridge/package-lock.json"
+          cache-dependency-path: "relayer/package-lock.json"
 
       - name: Install dependencies
         run: |
-          cd bridge
+          cd relayer
           npm ci
 
       - name: Run check
         run: |
-          cd bridge
+          cd relayer
           npm run check
