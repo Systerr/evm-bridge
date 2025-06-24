@@ -6,7 +6,11 @@
 
 ## Demo Video
 
-[![Watch the video](https://img.youtube.com/vi/nPUHRzomYcs/maxresdefault.jpg)](https://www.youtube.com/watch?v=nPUHRzomYcs)
+Click on the link to view it
+
+<a href="https://www.youtube.com/watch?v=nPUHRzomYcs" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.youtube.com/vi/nPUHRzomYcs/maxresdefault.jpg" alt="Watch the video" style="max-width: 100%;">
+</a>
 
 ## Bridge Working Flow
 
