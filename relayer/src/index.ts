@@ -283,10 +283,10 @@ class BridgeRelayer {
       const walletAddress = await this.wallet.getAddress();
 
       console.log(
-        `Connected to Chain A: ${chainANetwork.name} (${chainANetwork.chainId})`,
+        `Connected to Chain A: (${chainANetwork.chainId})`,
       );
       console.log(
-        `Connected to Chain B: ${chainBNetwork.name} (${chainBNetwork.chainId})`,
+        `Connected to Chain B: (${chainBNetwork.chainId})`,
       );
       console.log(`Relayer wallet address: ${walletAddress}`);
       console.log(`Bridge A address: ${this.config.bridgeAAddress}`);
