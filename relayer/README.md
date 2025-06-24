@@ -1,11 +1,235 @@
-# Relayer TypeScript project
+# Bridge Relayer Service
 
-This is a Typescript code to forward messages between chains
+A TypeScript-based relayer service that monitors TokensLocked events on Chain A and automatically submits corresponding transactions to Chain B to release tokens. This service acts as the bridge between two blockchain networks.
 
+## Features
 
+- **Event Monitoring**: Continuously polls Chain A for TokensLocked events from BridgeA contract
+- **Message Signing**: Cryptographically signs messages using the relayer's private key
+- **Automatic Submission**: Submits signed transactions to BridgeB contract on Chain B
+- **Nonce Management**: Tracks processed nonces to prevent replay attacks and duplicate processing (simple version, in memory, for prob you should use database)
+- **Persistence**: Saves last processed block number to resume from correct position after restart (same simple interaction, for production use database)
+- **Error Handling**: Robust error handling for network issues and transaction failures
+- **Graceful Shutdown**: Handles SIGINT and SIGTERM signals for clean shutdown
 
-# Deploy 
+## Architecture
 
-## Docker 
+```
+Chain A (Source)          Relayer Service          Chain B (Destination)
+┌─────────────┐           ┌─────────────────┐      ┌─────────────────┐
+│  BridgeA    │           │                 │      │    BridgeB      │
+│             │           │  1. Monitor     │      │                 │
+│ lockTokens()│ ────────► │     Events      │      │ releaseTokens() │
+│             │           │                 │      │                 │
+│ TokensLocked│           │  2. Sign        │ ───► │                 │
+│   Event     │           │     Message     │      │                 │
+└─────────────┘           │                 │      └─────────────────┘
+                          │  3. Submit TX   │
+                          └─────────────────┘
+```
 
+## Prerequisites
 
+- Node.js 24+ (for `loadEnvFile` support an typescript support out of the box without compilers)
+- Access to RPC endpoints for both chains
+- Private key for the relayer wallet (must be registered as relayer on Chain B)
+- Sufficient balance on Chain B for gas fees
+
+## Installation
+
+1. Clone the repository and navigate to the relayer directory:
+
+```bash
+cd relayer
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Copy the environment example and configure:
+
+```bash
+cp .env.example .env
+```
+
+## Configuration
+
+Edit the `.env` file with your configuration:
+
+```env
+# Required Configuration
+CHAIN_A_RPC_URL=http://localhost:8545
+CHAIN_B_RPC_URL=http://localhost:8546
+BRIDGE_A_ADDRESS=0x...                    # BridgeA contract address
+BRIDGE_B_ADDRESS=0x...                  # BridgeB contract address
+PRIVATE_KEY=0x...                       # Relayer private key
+
+# Optional Configuration
+POLL_INTERVAL=5000                      # Polling interval in milliseconds (default: 5000)
+LAST_BLOCK_FILE=./last_block.txt       # File to store last processed block (default: ./last_block.txt)
+```
+
+### Environment Variables
+
+| Variable           | Required | Description                                                         |
+| ------------------ | -------- | ------------------------------------------------------------------- |
+| `CHAIN_A_RPC_URL`  | Yes      | RPC endpoint for Chain A (source chain)                             |
+| `CHAIN_B_RPC_URL`  | Yes      | RPC endpoint for Chain B (destination chain)                        |
+| `BRIDGE_A_ADDRESS` | Yes      | Address of BridgeA contract on Chain A                              |
+| `BRIDGE_B_ADDRESS` | Yes      | Address of BridgeB contract on Chain B                              |
+| `PRIVATE_KEY`      | Yes      | Private key of the relayer wallet                                   |
+| `POLL_INTERVAL`    | No       | Polling interval in milliseconds (default: 5000)                    |
+| `LAST_BLOCK_FILE`  | No       | File path to store last processed block (default: ./last_block.txt) |
+
+## Usage
+
+### Development Mode
+
+```bash
+npm run dev
+```
+
+### Production Mode
+
+```bash
+npm start
+```
+
+### Docker
+
+```bash
+npm run docker
+```
+
+## How It Works
+
+### 1. Event Monitoring
+
+The relayer continuously polls Chain A for `TokensLocked` events emitted by the BridgeA contract:
+
+```solidity
+event TokensLocked(
+    uint256 indexed nonce,
+    address indexed destinationAddress,
+    uint256 indexed amount
+);
+```
+
+Instead of pulling possible to use WebSocket connection and reeive events from chaina
+
+### 2. Message Construction & Signing
+
+For each detected event, the relayer:
+
+1. Constructs a message hash using `keccak256(abi.encodePacked(recipient, amount, nonce))`
+2. Signs the message hash using the relayer's private key
+3. Creates an Ethereum signed message hash for verification
+
+### 3. Transaction Submission
+
+The relayer submits a transaction to Chain B calling:
+
+```solidity
+function releaseTokens(
+    address recipient,
+    uint256 amount,
+    uint256 nonce,
+    bytes memory signature
+)
+```
+
+### 4. State Management
+
+- **Nonce Tracking**: Maintains an in-memory set of processed nonces
+- **Block Persistence**: Saves the last processed block number to file
+- **Resume Capability**: On restart, resumes from the last processed block
+
+## Error Handling
+
+The relayer includes comprehensive error handling:
+
+- **Network Issues**: Retries with exponential backoff
+- **Transaction Failures**: Logs errors and continues processing
+- **Duplicate Nonces**: Detects and skips already processed events
+- **Invalid Signatures**: Logs validation errors
+- **Insufficient Balance**: Warns about low gas balance
+
+## Monitoring & Logging
+
+The service provides detailed logging:
+
+```
+🚀 Starting Bridge Relayer...
+Connected to Chain A: hardhat (31337)
+Connected to Chain B: hardhat (31338)
+Relayer wallet address: 0x...
+Bridge A address: 0x...
+Bridge B address: 0x...
+Wallet balance on Chain B: 10.0 ETH
+Starting from block 100 (current: 150)
+Fetching TokensLocked events from block 101 to 150
+Found 2 TokensLocked events
+Processing TokensLocked event: {...}
+✅ Successfully processed nonce 1 in block 151
+```
+
+## Security Considerations
+
+1. **Private Key Security**: Store private keys securely, never commit to version control
+2. **RPC Endpoints**: Use trusted RPC providers
+3. **Network Isolation**: Run in secure network environment
+4. **Monitoring**: Monitor for unusual activity or failed transactions
+5. **Balance Management**: Maintain sufficient balance for gas fees
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Missing required environment variable"**
+
+   - Ensure all required environment variables are set in `.env`
+
+2. **"Nonce has already been used"**
+
+   - This is normal behavior for duplicate events, the relayer will skip them
+
+3. **"Insufficient funds for gas"**
+
+   - Add more ETH to the relayer wallet on Chain B
+
+4. **Connection errors**
+   - Verify RPC endpoints are accessible and correct
+
+### Logs Location
+
+- Console output shows real-time activity
+- Last processed block is saved to `./last_block.txt` (configurable)
+
+## Codestyle
+
+Codestyle and linting based on Biome. Modern succesor of eslint + prettiner writen on Rust
+
+```bash
+npm run check          # Run linting
+```
+
+## Docker Support
+
+The service includes Docker support for containerized deployment:
+
+```dockerfile
+# Build and run
+docker build -t bridge-relayer .
+docker run --env-file .env bridge-relayer
+```
+
+# Deploy
+
+You able to use docker image to deploy on docker envirouments (kubernetes, ecs, etc). As well youa bel to use simple process with pm2
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t {YOUR_REGISTRY}:latest . --push
+```

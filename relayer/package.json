@@ -4,8 +4,10 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node --watch src/index.ts",
     "check": "npx @biomejs/biome check",
-    "docker": "npm ci && node index.ts",
+    "docker": "npm ci && node src/index.ts",
     "docker:build:github": "docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/$GITHUB_REPOSITORY/relayer:latest . --push"
   },
   "dependencies": {

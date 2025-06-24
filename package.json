@@ -1,0 +1,19 @@
+{
+  "name": "bridge",
+  "version": "1.0.0",
+  "description": "> ⚠️ **WARNING: NOT FOR PRODUCTION USE** > > This project is for development, testing, and educational purposes only. Do not use this code in production environments. The code may contain security vulnerabilities, bugs, or incomplete features that could result in loss of funds or other critical issues.",
+  "homepage": "https://github.com/Systerr/evm-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/Systerr/evm-bridge/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Systerr/evm-bridge.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "scripts": {
+    "bridge:logs": "docker compose logs relayer -f",
+    "bridge:terminal": "docker compose exec relayer bash"
+  }
+}
