@@ -6,7 +6,7 @@
 
 ## Demo Video
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/nPUHRzomYcs" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/nPUHRzomYcs/maxresdefault.jpg)](https://www.youtube.com/watch?v=nPUHRzomYcs)
 
 ## Bridge Working Flow
 
@@ -261,7 +261,7 @@ This part is not implemented, but the idea is the same:
 
 ### Architecture Choices
 
-- **Lock-and-Mint Pattern**: Implemented a lock-and-mint mechanism where tokens are locked on the source chain rather than burned. 
+- **Lock-and-Mint Pattern**: Implemented a lock-and-mint mechanism where tokens are locked on the source chain rather than burned.
 - **Immutable Token Address**: The `superToken` address is immutable to prevent unauthorized token changes after deployment, ensuring the bridge only works with the intended token.
 - **Sequential Nonce System**: Uses a simple incrementing counter starting from 1 (not 0) to ensure unique transaction identification and prevent replay attacks.
 - **Event-Driven Architecture**: Emits `TokensLocked` events with indexed parameters for efficient off-chain monitoring and filtering.
