@@ -1,18 +1,49 @@
 services:
-  chain-a:
+  chainA:
     image: ghcr.io/foundry-rs/foundry:latest
     environment:
       ANVIL_IP_ADDR: "0.0.0.0"
     working_dir: /anvil
     ports:
       - "8545:8545"
-    command: anvil
+    entrypoint:
+      - "anvil"
+      # - "--block-time"
+      # - "1"
+      - "--chain-id"
+      - "31337"
 
-  chain-b:
+  chainB:
     image: "ghcr.io/foundry-rs/foundry:latest"
     environment:
       ANVIL_IP_ADDR: "0.0.0.0"
     working_dir: /anvil
     ports:
       - "8546:8545"
-    command: anvil
+    entrypoint:
+      - "anvil"
+      # - "--block-time"
+      # - "1"
+      - "--chain-id"
+      - "31338"
+
+  contractDeployer:
+    image: "node:latest"
+    working_dir: /var/www/
+    environment:
+      OWNER_A_PRIVATE_KEY: "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+      OWNER_B_PRIVATE_KEY: "59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      CHAIN_A_RPC_URL: http://chainA:8545
+      CHAIN_B_RPC_URL: http://chainB:8545
+      CHAIN_B_RELAY_ADDRESS: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+      HARDHAT_IGNITION_CONFIRM_DEPLOYMENT: true # to avoid deploy quetions
+    volumes:
+      - ./contracts/:/var/www/
+    command: "npm run docker"
+
+  # bridge:
+  #   image: "node:latest"
+  #   working_dir: /var/www/
+  #   volumes:
+  #     - ./bridge/:/var/www/
+  #   command: npm ci && npm index.ts
