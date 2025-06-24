@@ -41,7 +41,7 @@ services:
       - ./contracts/:/var/www/
     command: "npm run docker"
 
-  bridge:
+  relayer:
     image: "node:latest"
     working_dir: /var/www/
     environment:
@@ -56,5 +56,5 @@ services:
       contractDeployer:
         condition: service_completed_successfully
     volumes:
-      - ./bridge/:/var/www/
+      - ./relayer/:/var/www/
     command: npm ci && node index.ts

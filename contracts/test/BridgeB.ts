@@ -19,10 +19,10 @@ describe("BridgeB", function () {
     const [owner, user1, user2] = await hre.viem.getWalletClients();
 
     // Create a dedicated bridge signer with known private key for signature testing
-    const bridgePrivateKey =
+    const relayerPrivateKey =
       "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-    const bridgeAccount = privateKeyToAccount(bridgePrivateKey);
-    const bridgeAddress = bridgeAccount.address;
+    const relayerAccount = privateKeyToAccount(relayerPrivateKey);
+    const relayerAddress = relayerAccount.address;
 
     // Deploy SuperTokenB first
     const superTokenB = await hre.viem.deployContract("SuperTokenB", [
@@ -38,7 +38,7 @@ describe("BridgeB", function () {
     await superTokenB.write.setRelay([bridgeB.address]);
 
     // Set the bridge address in BridgeB contract
-    await bridgeB.write.updateBridgeAddress([bridgeAddress]);
+    await bridgeB.write.updateRelayerAddress([relayerAddress]);
 
     const publicClient = await hre.viem.getPublicClient();
 
@@ -49,9 +49,9 @@ describe("BridgeB", function () {
       owner,
       user1,
       user2,
-      bridgeAccount,
-      bridgeAddress,
-      bridgePrivateKey,
+      relayerAccount,
+      relayerAddress,
+      relayerPrivateKey,
       publicClient,
     };
   }
@@ -61,7 +61,7 @@ describe("BridgeB", function () {
     recipient: string,
     amount: bigint,
     nonce: bigint,
-    bridgeAccount: any
+    relayerAccount: any
   ) {
     // Create message hash exactly as the contract does
     const messageHash = keccak256(
@@ -72,7 +72,7 @@ describe("BridgeB", function () {
     );
 
     // Sign the message hash
-    const signature = await bridgeAccount.signMessage({
+    const signature = await relayerAccount.signMessage({
       message: { raw: messageHash },
     });
 
@@ -109,7 +109,7 @@ describe("BridgeB", function () {
         superTokenB.address,
       ]);
 
-      expect(await bridgeB.read.bridgeAddress()).to.equal(zeroAddress);
+      expect(await bridgeB.read.relayerAddress()).to.equal(zeroAddress);
     });
   });
 
@@ -119,13 +119,13 @@ describe("BridgeB", function () {
         deployBridgeBFixture
       );
 
-      const hash = await bridgeB.write.updateBridgeAddress([
+      const hash = await bridgeB.write.updateRelayerAddress([
         getAddress(user1.account.address),
       ]);
 
       await publicClient.waitForTransactionReceipt({ hash });
 
-      expect(await bridgeB.read.bridgeAddress()).to.equal(
+      expect(await bridgeB.read.relayerAddress()).to.equal(
         getAddress(user1.account.address)
       );
     });
@@ -134,19 +134,22 @@ describe("BridgeB", function () {
       const { bridgeB, user1, user2 } = await loadFixture(deployBridgeBFixture);
 
       await expect(
-        bridgeB.write.updateBridgeAddress([getAddress(user2.account.address)], {
-          account: user1.account,
-        })
+        bridgeB.write.updateRelayerAddress(
+          [getAddress(user2.account.address)],
+          {
+            account: user1.account,
+          }
+        )
       ).to.be.rejectedWith("OwnableUnauthorizedAccount");
     });
 
     it("Should allow setting bridge address to zero (emergency case)", async function () {
       const { bridgeB, publicClient } = await loadFixture(deployBridgeBFixture);
 
-      const hash = await bridgeB.write.updateBridgeAddress([zeroAddress]);
+      const hash = await bridgeB.write.updateRelayerAddress([zeroAddress]);
       await publicClient.waitForTransactionReceipt({ hash });
 
-      expect(await bridgeB.read.bridgeAddress()).to.equal(zeroAddress);
+      expect(await bridgeB.read.relayerAddress()).to.equal(zeroAddress);
     });
   });
 
@@ -229,7 +232,7 @@ describe("BridgeB", function () {
 
   describe("Token Release - Valid Scenarios", function () {
     it("Should successfully release tokens with valid signature from bridge", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -241,7 +244,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       // Check initial balance
@@ -263,9 +266,8 @@ describe("BridgeB", function () {
     });
 
     it("Should emit TokensClaimed event on successful release", async function () {
-      const { bridgeB, user1, bridgeAccount, publicClient } = await loadFixture(
-        deployBridgeBFixture
-      );
+      const { bridgeB, user1, relayerAccount, publicClient } =
+        await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
       const amount = parseEther("50");
@@ -275,7 +277,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       const hash = await bridgeB.write.releaseTokens([
@@ -303,7 +305,7 @@ describe("BridgeB", function () {
         superTokenB,
         user1,
         user2,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployBridgeBFixture);
 
@@ -319,13 +321,13 @@ describe("BridgeB", function () {
         recipient1,
         amount1,
         nonce1,
-        bridgeAccount
+        relayerAccount
       );
       const signature2 = await createValidSignature(
         recipient2,
         amount2,
         nonce2,
-        bridgeAccount
+        relayerAccount
       );
 
       // Release tokens for user1
@@ -360,7 +362,7 @@ describe("BridgeB", function () {
         superTokenB,
         user1,
         user2,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployBridgeBFixture);
 
@@ -372,7 +374,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       // user2 calls the function on behalf of user1
@@ -421,9 +423,8 @@ describe("BridgeB", function () {
     });
 
     it("Should revert when nonce is already used", async function () {
-      const { bridgeB, user1, bridgeAccount, publicClient } = await loadFixture(
-        deployBridgeBFixture
-      );
+      const { bridgeB, user1, relayerAccount, publicClient } =
+        await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
       const amount = parseEther("100");
@@ -433,7 +434,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       // First release should succeed
@@ -500,7 +501,7 @@ describe("BridgeB", function () {
     });
 
     it("Should revert when signature is for different parameters", async function () {
-      const { bridgeB, user1, user2, bridgeAccount } = await loadFixture(
+      const { bridgeB, user1, user2, relayerAccount } = await loadFixture(
         deployBridgeBFixture
       );
 
@@ -514,7 +515,7 @@ describe("BridgeB", function () {
         recipient1,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       await expect(
@@ -537,11 +538,11 @@ describe("BridgeB", function () {
       // Simulate external bridge system generating signature
       const externalBridgeKey =
         "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba";
-      const externalBridgeAccount = privateKeyToAccount(externalBridgeKey);
+      const externalrelayerAccount = privateKeyToAccount(externalBridgeKey);
 
       // Update bridge address to external bridge
-      let hash = await bridgeB.write.updateBridgeAddress([
-        externalBridgeAccount.address,
+      let hash = await bridgeB.write.updateRelayerAddress([
+        externalrelayerAccount.address,
       ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
@@ -554,7 +555,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        externalBridgeAccount
+        externalrelayerAccount
       );
 
       // Release tokens
@@ -571,7 +572,7 @@ describe("BridgeB", function () {
     });
 
     it("Should handle bridge address rotation", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -583,7 +584,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce1,
-        bridgeAccount
+        relayerAccount
       );
 
       let hash = await bridgeB.write.releaseTokens([
@@ -597,10 +598,10 @@ describe("BridgeB", function () {
       // Rotate to new bridge
       const newBridgeKey =
         "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba";
-      const newBridgeAccount = privateKeyToAccount(newBridgeKey);
+      const newrelayerAccount = privateKeyToAccount(newBridgeKey);
 
-      hash = await bridgeB.write.updateBridgeAddress([
-        newBridgeAccount.address,
+      hash = await bridgeB.write.updateRelayerAddress([
+        newrelayerAccount.address,
       ]);
       await publicClient.waitForTransactionReceipt({ hash });
 
@@ -610,7 +611,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce2,
-        bridgeAccount
+        relayerAccount
       );
 
       await expect(
@@ -622,7 +623,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce2,
-        newBridgeAccount
+        newrelayerAccount
       );
 
       hash = await bridgeB.write.releaseTokens([
@@ -640,7 +641,7 @@ describe("BridgeB", function () {
 
   describe("ETH Handling and Gas Considerations", function () {
     it("Should work with normal gas requirements", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       // Release tokens should work normally
@@ -652,7 +653,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       const releaseHash = await bridgeB.write.releaseTokens([
@@ -668,7 +669,7 @@ describe("BridgeB", function () {
     });
 
     it("Should work when user pays gas for transaction", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -679,7 +680,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       // User pays gas for their own transaction
@@ -714,7 +715,7 @@ describe("BridgeB", function () {
         superTokenB,
         user1,
         user2,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployBridgeBFixture);
 
@@ -726,7 +727,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       // user2 acts as relayer and pays gas for user1's transaction
@@ -758,7 +759,7 @@ describe("BridgeB", function () {
 
   describe("Edge Cases and Stress Tests", function () {
     it("Should handle very large amounts", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -769,7 +770,7 @@ describe("BridgeB", function () {
         recipient,
         largeAmount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       const hash = await bridgeB.write.releaseTokens([
@@ -786,7 +787,7 @@ describe("BridgeB", function () {
     });
 
     it("Should handle very large nonce values", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -797,7 +798,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         largeNonce,
-        bridgeAccount
+        relayerAccount
       );
 
       const hash = await bridgeB.write.releaseTokens([
@@ -814,7 +815,7 @@ describe("BridgeB", function () {
     });
 
     it("Should handle zero amount (edge case)", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -825,7 +826,7 @@ describe("BridgeB", function () {
         recipient,
         zeroAmount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       const hash = await bridgeB.write.releaseTokens([
@@ -845,7 +846,7 @@ describe("BridgeB", function () {
     });
 
     it("Should handle rapid sequential transactions", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       const recipient = getAddress(user1.account.address);
@@ -859,7 +860,7 @@ describe("BridgeB", function () {
           recipient,
           amount,
           nonce,
-          bridgeAccount
+          relayerAccount
         );
 
         promises.push(
@@ -882,7 +883,7 @@ describe("BridgeB", function () {
 
   describe("Integration with SuperTokenB", function () {
     it("Should fail if BridgeB is not set as relay in SuperTokenB", async function () {
-      const { superTokenB, user1, bridgeAccount } = await loadFixture(
+      const { superTokenB, user1, relayerAccount } = await loadFixture(
         deployBridgeBFixture
       );
 
@@ -891,7 +892,7 @@ describe("BridgeB", function () {
         superTokenB.address,
       ]);
 
-      await newBridgeB.write.updateBridgeAddress([bridgeAccount.address]);
+      await newBridgeB.write.updateRelayerAddress([relayerAccount.address]);
 
       const recipient = getAddress(user1.account.address);
       const amount = parseEther("100");
@@ -901,7 +902,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       await expect(
@@ -910,7 +911,7 @@ describe("BridgeB", function () {
     });
 
     it("Should work correctly when SuperTokenB relay is changed", async function () {
-      const { bridgeB, superTokenB, user1, bridgeAccount, publicClient } =
+      const { bridgeB, superTokenB, user1, relayerAccount, publicClient } =
         await loadFixture(deployBridgeBFixture);
 
       // First transaction should work
@@ -922,7 +923,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce1,
-        bridgeAccount
+        relayerAccount
       );
 
       let hash = await bridgeB.write.releaseTokens([
@@ -945,7 +946,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce2,
-        bridgeAccount
+        relayerAccount
       );
 
       await expect(
@@ -962,7 +963,7 @@ describe("BridgeB", function () {
         recipient,
         amount,
         nonce3,
-        bridgeAccount
+        relayerAccount
       );
 
       hash = await bridgeB.write.releaseTokens([

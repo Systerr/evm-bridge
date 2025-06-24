@@ -14,16 +14,16 @@ const ChainBModule = buildModule("ChainBModule", (m) => {
   // Set BridgeB as relay for SuperTokenB so it can mint tokens
   m.call(superTokenB, "setRelay", [bridgeB]);
 
-  const bridgeAddress = m.getParameter(
+  const relayersAddress = m.getParameter(
     "CHAIN_B_RELAY_ADDRESS",
     process.env.CHAIN_B_RELAY_ADDRESS!
   );
 
-  if (!bridgeAddress) {
+  if (!relayersAddress) {
     console.warn("Please provide bridgeAddress to bridge smart contract");
   } else {
     // Set BridgeB as relay for SuperTokenB so it can mint tokens
-    m.call(bridgeB, "updateBridgeAddress", [bridgeAddress]);
+    m.call(bridgeB, "relayerAddress", [relayersAddress]);
   }
 
   return {

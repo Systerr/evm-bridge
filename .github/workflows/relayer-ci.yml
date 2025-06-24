@@ -1,12 +1,12 @@
-name: Bridge ci
+name: Relayer ci
 
 on:
   push:
     paths:
-      - "bridge/**"
+      - "relayer/**"
   pull_request:
     paths:
-      - "bridge/**"
+      - "relayer/**"
 
 jobs:
   test-contracts:

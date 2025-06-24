@@ -185,6 +185,12 @@ But we defenetely recomenned to use docker compsoe to run efveretrhing
 docker compose up
 ```
 
+## Env notes
+
+Docekr have preconfigured variables to work independendty. It possible to use deployed adresses of contracts before it deployed not because of CREATE2 command, but because we have same chain and same deploy bytecode and same nonces of account
+
+In real live you shoud deploy and then configure ENV variables for a real addresses
+
 # Deploy
 
 # Testing

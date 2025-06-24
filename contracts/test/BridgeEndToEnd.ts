@@ -19,10 +19,10 @@ describe("Bridge End-to-End Tests", function () {
     const [owner, user1, user2, user3] = await hre.viem.getWalletClients();
 
     // Create a dedicated bridge signer with known private key for signature testing
-    const bridgePrivateKey =
+    const relayerPrivateKey =
       "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
-    const bridgeAccount = privateKeyToAccount(bridgePrivateKey);
-    const bridgeAddress = bridgeAccount.address;
+    const relayerAccount = privateKeyToAccount(relayerPrivateKey);
+    const relayerAddress = relayerAccount.address;
 
     // Deploy SuperToken (Chain A)
     const superToken = await hre.viem.deployContract("SuperToken", [
@@ -34,7 +34,7 @@ describe("Bridge End-to-End Tests", function () {
       superToken.address,
     ]);
 
-    // Deploy SuperTokenB (Chain B). 
+    // Deploy SuperTokenB (Chain B).
     // In our case it only one chain as this is a limitations of hardhat 2
     // they promise try testing with multi chains in a version 3
     const superTokenB = await hre.viem.deployContract("SuperTokenB", [
@@ -50,7 +50,7 @@ describe("Bridge End-to-End Tests", function () {
     await superTokenB.write.setRelay([bridgeB.address]);
 
     // Set the bridge address in BridgeB contract
-    await bridgeB.write.updateBridgeAddress([bridgeAddress]);
+    await bridgeB.write.updateRelayerAddress([relayerAddress]);
 
     const publicClient = await hre.viem.getPublicClient();
 
@@ -67,9 +67,9 @@ describe("Bridge End-to-End Tests", function () {
       user2,
       user3,
       // Bridge system
-      bridgeAccount,
-      bridgeAddress,
-      bridgePrivateKey,
+      relayerAccount,
+      relayerAddress,
+      relayerPrivateKey,
       // Utils
       initialSupply,
       publicClient,
@@ -81,7 +81,7 @@ describe("Bridge End-to-End Tests", function () {
     recipient: string,
     amount: bigint,
     nonce: bigint,
-    bridgeAccount: any
+    relayerAccount: any
   ) {
     // Create message hash exactly as the BridgeB contract does
     const messageHash = keccak256(
@@ -92,7 +92,7 @@ describe("Bridge End-to-End Tests", function () {
     );
 
     // Sign the message hash
-    const signature = await bridgeAccount.signMessage({
+    const signature = await relayerAccount.signMessage({
       message: { raw: messageHash },
     });
 
@@ -102,7 +102,7 @@ describe("Bridge End-to-End Tests", function () {
   // Helper function to simulate the off-chain bridge system
   async function simulateOffChainBridgeSystem(
     bridge: any,
-    bridgeAccount: any,
+    relayerAccount: any,
     publicClient: any,
     fromBlock: bigint,
     toBlock?: bigint
@@ -121,13 +121,13 @@ describe("Bridge End-to-End Tests", function () {
     const signatures = [];
     for (const event of events) {
       const { nonce, destinationAddress, amount } = event.args;
-      
+
       // Create signature for BridgeB release
       const signature = await createValidSignature(
         destinationAddress,
         amount,
         nonce,
-        bridgeAccount
+        relayerAccount
       );
 
       signatures.push({
@@ -152,7 +152,7 @@ describe("Bridge End-to-End Tests", function () {
         superTokenB,
         owner,
         user1,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -163,7 +163,9 @@ describe("Bridge End-to-End Tests", function () {
       const initialOwnerBalanceA = await superToken.read.balanceOf([
         getAddress(owner.account.address),
       ]);
-      const initialUser1BalanceB = await superTokenB.read.balanceOf([recipient]);
+      const initialUser1BalanceB = await superTokenB.read.balanceOf([
+        recipient,
+      ]);
       const initialBridgeBalance = await superToken.read.balanceOf([
         bridge.address,
       ]);
@@ -178,15 +180,20 @@ describe("Bridge End-to-End Tests", function () {
         account: owner.account,
       });
 
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: owner.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
       });
 
-      console.log(`\nTokens locked on Chain A at block ${lockReceipt.blockNumber}`);
+      console.log(
+        `\nTokens locked on Chain A at block ${lockReceipt.blockNumber}`
+      );
 
       // Step 3: Verify lock event and balances
       const afterLockOwnerBalance = await superToken.read.balanceOf([
@@ -196,19 +203,24 @@ describe("Bridge End-to-End Tests", function () {
         bridge.address,
       ]);
 
-      expect(afterLockOwnerBalance).to.equal(initialOwnerBalanceA - bridgeAmount);
-      expect(afterLockBridgeBalance).to.equal(initialBridgeBalance + bridgeAmount);
+      expect(afterLockOwnerBalance).to.equal(
+        initialOwnerBalanceA - bridgeAmount
+      );
+      expect(afterLockBridgeBalance).to.equal(
+        initialBridgeBalance + bridgeAmount
+      );
 
       // Step 4: Simulate off-chain bridge system detecting the lock
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         lockReceipt.blockNumber
       );
 
       expect(bridgeSignatures).to.have.length(1);
-      const { nonce, destinationAddress, amount, signature } = bridgeSignatures[0];
+      const { nonce, destinationAddress, amount, signature } =
+        bridgeSignatures[0];
 
       console.log(`\nOff-chain system processed lock event:`);
       console.log(`Nonce: ${nonce}`);
@@ -227,7 +239,9 @@ describe("Bridge End-to-End Tests", function () {
         hash: releaseTxHash,
       });
 
-      console.log(`\nTokens released on Chain B at block ${releaseReceipt.blockNumber}`);
+      console.log(
+        `\nTokens released on Chain B at block ${releaseReceipt.blockNumber}`
+      );
 
       // Step 6: Verify final balances
       const finalUser1BalanceB = await superTokenB.read.balanceOf([recipient]);
@@ -260,7 +274,9 @@ describe("Bridge End-to-End Tests", function () {
       expect(releaseEvents).to.have.length(1);
 
       expect(lockEvents[0].args.nonce).to.equal(nonce);
-      expect(lockEvents[0].args.destinationAddress).to.equal(destinationAddress);
+      expect(lockEvents[0].args.destinationAddress).to.equal(
+        destinationAddress
+      );
       expect(lockEvents[0].args.amount).to.equal(amount);
 
       expect(releaseEvents[0].args.nonce).to.equal(nonce);
@@ -278,7 +294,7 @@ describe("Bridge End-to-End Tests", function () {
         user1,
         user2,
         user3,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -297,24 +313,39 @@ describe("Bridge End-to-End Tests", function () {
       });
 
       // Step 1: Lock tokens for multiple users
-      const lockTx1 = await bridge.write.lockTokens([bridgeAmount1, recipient1], {
-        account: owner.account,
-      });
-      const lockTx2 = await bridge.write.lockTokens([bridgeAmount2, recipient2], {
-        account: owner.account,
-      });
-      const lockTx3 = await bridge.write.lockTokens([bridgeAmount3, recipient3], {
-        account: owner.account,
-      });
+      const lockTx1 = await bridge.write.lockTokens(
+        [bridgeAmount1, recipient1],
+        {
+          account: owner.account,
+        }
+      );
+      const lockTx2 = await bridge.write.lockTokens(
+        [bridgeAmount2, recipient2],
+        {
+          account: owner.account,
+        }
+      );
+      const lockTx3 = await bridge.write.lockTokens(
+        [bridgeAmount3, recipient3],
+        {
+          account: owner.account,
+        }
+      );
 
-      const receipt1 = await publicClient.waitForTransactionReceipt({ hash: lockTx1 });
-      const receipt2 = await publicClient.waitForTransactionReceipt({ hash: lockTx2 });
-      const receipt3 = await publicClient.waitForTransactionReceipt({ hash: lockTx3 });
+      const receipt1 = await publicClient.waitForTransactionReceipt({
+        hash: lockTx1,
+      });
+      const receipt2 = await publicClient.waitForTransactionReceipt({
+        hash: lockTx2,
+      });
+      const receipt3 = await publicClient.waitForTransactionReceipt({
+        hash: lockTx3,
+      });
 
       // Step 2: Simulate off-chain system processing all events
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         receipt1.blockNumber,
         receipt3.blockNumber
@@ -342,10 +373,10 @@ describe("Bridge End-to-End Tests", function () {
       expect(user3Balance).to.equal(bridgeAmount3);
 
       // Step 5: Verify nonces are sequential
-      const sortedSignatures = bridgeSignatures.sort((a, b) => 
-        Number(a.nonce) - Number(b.nonce)
+      const sortedSignatures = bridgeSignatures.sort(
+        (a, b) => Number(a.nonce) - Number(b.nonce)
       );
-      
+
       expect(sortedSignatures[0].nonce).to.equal(1n);
       expect(sortedSignatures[1].nonce).to.equal(2n);
       expect(sortedSignatures[2].nonce).to.equal(3n);
@@ -359,7 +390,7 @@ describe("Bridge End-to-End Tests", function () {
         superTokenB,
         owner,
         user1,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -374,20 +405,30 @@ describe("Bridge End-to-End Tests", function () {
       });
 
       // Step 1: Lock tokens twice for same recipient
-      const lockTx1 = await bridge.write.lockTokens([bridgeAmount1, recipient], {
-        account: owner.account,
-      });
-      const lockTx2 = await bridge.write.lockTokens([bridgeAmount2, recipient], {
-        account: owner.account,
-      });
+      const lockTx1 = await bridge.write.lockTokens(
+        [bridgeAmount1, recipient],
+        {
+          account: owner.account,
+        }
+      );
+      const lockTx2 = await bridge.write.lockTokens(
+        [bridgeAmount2, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
-      const receipt1 = await publicClient.waitForTransactionReceipt({ hash: lockTx1 });
-      const receipt2 = await publicClient.waitForTransactionReceipt({ hash: lockTx2 });
+      const receipt1 = await publicClient.waitForTransactionReceipt({
+        hash: lockTx1,
+      });
+      const receipt2 = await publicClient.waitForTransactionReceipt({
+        hash: lockTx2,
+      });
 
       // Step 2: Process both transactions
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         receipt1.blockNumber,
         receipt2.blockNumber
@@ -418,7 +459,7 @@ describe("Bridge End-to-End Tests", function () {
         superTokenB,
         owner,
         user1,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -430,9 +471,12 @@ describe("Bridge End-to-End Tests", function () {
         account: owner.account,
       });
 
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: owner.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
@@ -440,12 +484,13 @@ describe("Bridge End-to-End Tests", function () {
 
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         lockReceipt.blockNumber
       );
 
-      const { nonce, destinationAddress, amount, signature } = bridgeSignatures[0];
+      const { nonce, destinationAddress, amount, signature } =
+        bridgeSignatures[0];
 
       // Release tokens successfully
       await bridgeB.write.releaseTokens([
@@ -483,7 +528,7 @@ describe("Bridge End-to-End Tests", function () {
         owner,
         user1,
         user2,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -491,18 +536,24 @@ describe("Bridge End-to-End Tests", function () {
       const recipient = getAddress(user1.account.address);
 
       // Step 1: Transfer tokens to user2 and let them bridge
-      await superToken.write.transfer([getAddress(user2.account.address), bridgeAmount], {
-        account: owner.account,
-      });
+      await superToken.write.transfer(
+        [getAddress(user2.account.address), bridgeAmount],
+        {
+          account: owner.account,
+        }
+      );
 
       await superToken.write.approve([bridge.address, bridgeAmount], {
         account: user2.account,
       });
 
       // user2 locks tokens for user1
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: user2.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: user2.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
@@ -511,22 +562,21 @@ describe("Bridge End-to-End Tests", function () {
       // Step 2: Process the lock event
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         lockReceipt.blockNumber
       );
 
-      const { nonce, destinationAddress, amount, signature } = bridgeSignatures[0];
+      const { nonce, destinationAddress, amount, signature } =
+        bridgeSignatures[0];
 
       // Step 3: Anyone can call release (user1 calls it themselves)
-      await bridgeB.write.releaseTokens([
-        destinationAddress,
-        amount,
-        nonce,
-        signature,
-      ], {
-        account: user1.account,
-      });
+      await bridgeB.write.releaseTokens(
+        [destinationAddress, amount, nonce, signature],
+        {
+          account: user1.account,
+        }
+      );
 
       // Step 4: Verify user1 received the tokens
       const finalBalance = await superTokenB.read.balanceOf([recipient]);
@@ -547,7 +597,7 @@ describe("Bridge End-to-End Tests", function () {
         superTokenB,
         owner,
         user1,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -559,9 +609,12 @@ describe("Bridge End-to-End Tests", function () {
         account: owner.account,
       });
 
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: owner.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
@@ -570,7 +623,7 @@ describe("Bridge End-to-End Tests", function () {
       // Step 2: Process the zero amount lock
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         lockReceipt.blockNumber
       );
@@ -579,7 +632,8 @@ describe("Bridge End-to-End Tests", function () {
       expect(bridgeSignatures[0].amount).to.equal(0n);
 
       // Step 3: Release zero tokens
-      const { nonce, destinationAddress, amount, signature } = bridgeSignatures[0];
+      const { nonce, destinationAddress, amount, signature } =
+        bridgeSignatures[0];
 
       await bridgeB.write.releaseTokens([
         destinationAddress,
@@ -601,19 +655,12 @@ describe("Bridge End-to-End Tests", function () {
       expect(lockEvents).to.have.length(1);
       expect(lockEvents[0].args.amount).to.equal(0n);
     });
-
   });
 
   describe("Bridge System Security", function () {
     it("Should reject signatures from unauthorized signers", async function () {
-      const {
-        bridge,
-        superToken,
-        bridgeB,
-        owner,
-        user1,
-        publicClient,
-      } = await loadFixture(deployFullBridgeSystemFixture);
+      const { bridge, superToken, bridgeB, owner, user1, publicClient } =
+        await loadFixture(deployFullBridgeSystemFixture);
 
       const bridgeAmount = parseEther("100");
       const recipient = getAddress(user1.account.address);
@@ -623,9 +670,12 @@ describe("Bridge End-to-End Tests", function () {
         account: owner.account,
       });
 
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: owner.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
@@ -643,7 +693,8 @@ describe("Bridge End-to-End Tests", function () {
       const { nonce, destinationAddress, amount } = events[0].args;
 
       // Step 3: Create signature with unauthorized signer
-      const maliciousPrivateKey = "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a";
+      const maliciousPrivateKey =
+        "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a";
       const maliciousAccount = privateKeyToAccount(maliciousPrivateKey);
 
       const maliciousSignature = await createValidSignature(
@@ -672,7 +723,7 @@ describe("Bridge End-to-End Tests", function () {
         owner,
         user1,
         user2,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -684,9 +735,12 @@ describe("Bridge End-to-End Tests", function () {
         account: owner.account,
       });
 
-      const lockTxHash = await bridge.write.lockTokens([bridgeAmount, recipient], {
-        account: owner.account,
-      });
+      const lockTxHash = await bridge.write.lockTokens(
+        [bridgeAmount, recipient],
+        {
+          account: owner.account,
+        }
+      );
 
       const lockReceipt = await publicClient.waitForTransactionReceipt({
         hash: lockTxHash,
@@ -695,7 +749,7 @@ describe("Bridge End-to-End Tests", function () {
       // Step 2: Get valid signature
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         lockReceipt.blockNumber
       );
@@ -745,7 +799,7 @@ describe("Bridge End-to-End Tests", function () {
         superTokenB,
         owner,
         user1,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
@@ -754,23 +808,23 @@ describe("Bridge End-to-End Tests", function () {
       const numOperations = 5;
 
       // Step 1: Approve for all operations
-      await superToken.write.approve([
-        bridge.address, 
-        bridgeAmount * BigInt(numOperations)
-      ], {
-        account: owner.account,
-      });
+      await superToken.write.approve(
+        [bridge.address, bridgeAmount * BigInt(numOperations)],
+        {
+          account: owner.account,
+        }
+      );
 
       // Step 2: Perform lock operations sequentially to ensure they're in different blocks
       const lockHashes = [];
       const lockReceipts = [];
-      
+
       for (let i = 0; i < numOperations; i++) {
         const hash = await bridge.write.lockTokens([bridgeAmount, recipient], {
           account: owner.account,
         });
         lockHashes.push(hash);
-        
+
         const receipt = await publicClient.waitForTransactionReceipt({ hash });
         lockReceipts.push(receipt);
       }
@@ -781,7 +835,7 @@ describe("Bridge End-to-End Tests", function () {
 
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         firstBlock,
         lastBlock
@@ -790,7 +844,7 @@ describe("Bridge End-to-End Tests", function () {
       expect(bridgeSignatures).to.have.length(numOperations);
 
       // Step 4: Release all tokens
-      const releasePromises = bridgeSignatures.map(sigData =>
+      const releasePromises = bridgeSignatures.map((sigData) =>
         bridgeB.write.releaseTokens([
           sigData.destinationAddress,
           sigData.amount,
@@ -816,19 +870,25 @@ describe("Bridge End-to-End Tests", function () {
         user1,
         user2,
         user3,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
       } = await loadFixture(deployFullBridgeSystemFixture);
 
       const bridgeAmount = parseEther("50");
 
       // Step 1: Transfer tokens to users
-      await superToken.write.transfer([getAddress(user1.account.address), bridgeAmount], {
-        account: owner.account,
-      });
-      await superToken.write.transfer([getAddress(user2.account.address), bridgeAmount], {
-        account: owner.account,
-      });
+      await superToken.write.transfer(
+        [getAddress(user1.account.address), bridgeAmount],
+        {
+          account: owner.account,
+        }
+      );
+      await superToken.write.transfer(
+        [getAddress(user2.account.address), bridgeAmount],
+        {
+          account: owner.account,
+        }
+      );
 
       // Step 2: Each user approves and locks tokens
       await superToken.write.approve([bridge.address, bridgeAmount], {
@@ -845,21 +905,30 @@ describe("Bridge End-to-End Tests", function () {
       const lock1 = await bridge.write.lockTokens([bridgeAmount], {
         account: user1.account, // user1 locks for themselves
       });
-      const lock2 = await bridge.write.lockTokens([bridgeAmount, getAddress(user3.account.address)], {
-        account: owner.account, // owner locks for user3
-      });
+      const lock2 = await bridge.write.lockTokens(
+        [bridgeAmount, getAddress(user3.account.address)],
+        {
+          account: owner.account, // owner locks for user3
+        }
+      );
       const lock3 = await bridge.write.lockTokens([bridgeAmount], {
         account: user2.account, // user2 locks for themselves
       });
 
-      const receipt1 = await publicClient.waitForTransactionReceipt({ hash: lock1 });
-      const receipt2 = await publicClient.waitForTransactionReceipt({ hash: lock2 });
-      const receipt3 = await publicClient.waitForTransactionReceipt({ hash: lock3 });
+      const receipt1 = await publicClient.waitForTransactionReceipt({
+        hash: lock1,
+      });
+      const receipt2 = await publicClient.waitForTransactionReceipt({
+        hash: lock2,
+      });
+      const receipt3 = await publicClient.waitForTransactionReceipt({
+        hash: lock3,
+      });
 
       // Step 3: Process all events
       const bridgeSignatures = await simulateOffChainBridgeSystem(
         bridge,
-        bridgeAccount,
+        relayerAccount,
         publicClient,
         receipt1.blockNumber,
         receipt3.blockNumber
@@ -868,8 +937,10 @@ describe("Bridge End-to-End Tests", function () {
       expect(bridgeSignatures).to.have.length(3);
 
       // Step 4: Verify nonces are sequential regardless of user
-      const sortedByNonce = bridgeSignatures.sort((a, b) => Number(a.nonce) - Number(b.nonce));
-      
+      const sortedByNonce = bridgeSignatures.sort(
+        (a, b) => Number(a.nonce) - Number(b.nonce)
+      );
+
       expect(sortedByNonce[0].nonce).to.equal(1n);
       expect(sortedByNonce[1].nonce).to.equal(2n);
       expect(sortedByNonce[2].nonce).to.equal(3n);
@@ -885,9 +956,15 @@ describe("Bridge End-to-End Tests", function () {
       }
 
       // Step 6: Verify correct recipients received tokens
-      const user1FinalBalance = await superTokenB.read.balanceOf([getAddress(user1.account.address)]);
-      const user2FinalBalance = await superTokenB.read.balanceOf([getAddress(user2.account.address)]);
-      const user3FinalBalance = await superTokenB.read.balanceOf([getAddress(user3.account.address)]);
+      const user1FinalBalance = await superTokenB.read.balanceOf([
+        getAddress(user1.account.address),
+      ]);
+      const user2FinalBalance = await superTokenB.read.balanceOf([
+        getAddress(user2.account.address),
+      ]);
+      const user3FinalBalance = await superTokenB.read.balanceOf([
+        getAddress(user3.account.address),
+      ]);
 
       expect(user1FinalBalance).to.equal(bridgeAmount); // user1 locked for themselves
       expect(user2FinalBalance).to.equal(bridgeAmount); // user2 locked for themselves

@@ -17,7 +17,7 @@ contract BridgeB is Ownable {
     /**
      * @notice  address of bridge to make signature
      */
-    address public bridgeAddress;
+    address public relayerAddress;
 
     /**
      * @notice  we are going to work with crypto
@@ -69,7 +69,7 @@ contract BridgeB is Ownable {
         address recoveredSigner = messageHash.toEthSignedMessageHash().recover(
             signature
         );
-        require(recoveredSigner == bridgeAddress, "Bridge: Invalid signature.");
+        require(recoveredSigner == relayerAddress, "Bridge: Invalid signature.");
         require(
             recoveredSigner != address(0),
             "Bridge: ECDSA recovery failed."
@@ -97,7 +97,7 @@ contract BridgeB is Ownable {
     /**
      * @dev Allows the owner to update the bridge address in case the key is compromised.
      */
-    function updateBridgeAddress(address _newSigner) public onlyOwner {
-        bridgeAddress = _newSigner;
+    function updateRelayerAddress(address _newSigner) public onlyOwner {
+        relayerAddress = _newSigner;
     }
 }
