@@ -57,4 +57,4 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./relayer/:/var/www/
-    command: npm ci && node index.ts
+    command: npm run docker
