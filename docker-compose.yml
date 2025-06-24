@@ -39,6 +39,7 @@ services:
       HARDHAT_IGNITION_CONFIRM_DEPLOYMENT: true # to avoid deploy quetions
     volumes:
       - ./contracts/:/var/www/
+      - /tmp/ignition-deployments:/var/www/ignition/deployments
     command: "npm run docker"
 
   relayer:
@@ -52,9 +53,13 @@ services:
       PRIVATE_KEY: "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
       OWNER_A_PRIVATE_KEY: "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
       DEMO_USER_PRIVATE_KEY: "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"
+      LAST_BLOCK_FILE: "/tmp/relayer-state/last_block.txt"
+
     depends_on:
       contractDeployer:
         condition: service_completed_successfully
     volumes:
       - ./relayer/:/var/www/
+      - /tmp/relayer-state:/tmp/relayer-state
+
     command: npm run docker

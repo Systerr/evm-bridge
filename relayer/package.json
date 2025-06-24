@@ -8,7 +8,7 @@
     "dev": "node --watch src/index.ts",
     "check": "npx @biomejs/biome check",
     "check:fix": "npx @biomejs/biome check --write",
-    "docker": "npm ci && node src/index.ts",
+    "docker": "mkdir -p /tmp/relayer-state && rm -rf /tmp/relayer-state/* && npm ci && node src/index.ts",
     "docker:build:github": "docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/$GITHUB_REPOSITORY/relayer:latest . --push"
   },
   "dependencies": {

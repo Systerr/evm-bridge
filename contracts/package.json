@@ -13,6 +13,6 @@
     "coverage": "SOLIDITY_COVERAGE=true hardhat coverage",
     "ignition:chainA": "hardhat ignition deploy ignition/modules/ChainA.ts --network chainA",
     "ignition:chainB": "hardhat ignition deploy ignition/modules/ChainB.ts --network chainB",
-    "docker": "npm ci && npm run ignition:chainA && npm run ignition:chainB"
+    "docker": "mkdir -p /var/www/ignition/deployments && rm -rf /var/www/ignition/deployments/* && npm ci && npm run ignition:chainA && npm run ignition:chainB"
   }
 }
