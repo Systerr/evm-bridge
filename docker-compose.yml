@@ -41,9 +41,20 @@ services:
       - ./contracts/:/var/www/
     command: "npm run docker"
 
-  # bridge:
-  #   image: "node:latest"
-  #   working_dir: /var/www/
-  #   volumes:
-  #     - ./bridge/:/var/www/
-  #   command: npm ci && npm index.ts
+  bridge:
+    image: "node:latest"
+    working_dir: /var/www/
+    environment:
+      CHAIN_A_RPC_URL: http://chainA:8545
+      CHAIN_B_RPC_URL: http://chainB:8545
+      SUPER_TOKEN_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3" # it the same as we deploying to the same chains with same keys
+      SUPER_TOKEN_B_ADDRESS: "0x8464135c8F25Da09e49BC8782676a84730C318bC"
+      BRIDGE_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      BRIDGE_B_ADDRESS: "0x71C95911E9a5D330f4D621842EC243EE1343292e"
+      PRIVATE_KEY: "5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
+    depends_on:
+      contractDeployer:
+        condition: service_completed_successfully
+    volumes:
+      - ./bridge/:/var/www/
+    command: npm ci && node index.ts

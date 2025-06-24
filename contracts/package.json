@@ -1,5 +1,5 @@
 {
-  "name": "hardhat-project",
+  "name": "bridge-contracts",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^4.0.0",
     "hardhat": "^2.25.0"

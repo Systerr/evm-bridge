@@ -1,0 +1,34 @@
+name: Bridge ci
+
+on:
+  push:
+    paths:
+      - "bridge/**"
+  pull_request:
+    paths:
+      - "bridge/**"
+
+jobs:
+  test-contracts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "bridge/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd bridge
+          npm ci
+
+      - name: Run check
+        run: |
+          cd bridge
+          npm run check
