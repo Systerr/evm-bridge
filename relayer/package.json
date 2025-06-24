@@ -6,7 +6,6 @@
   "scripts": {
     "check": "npx @biomejs/biome check",
     "docker": "npm ci && node index.ts",
-    "docker:build": "docker buildx build --platform linux/amd64,linux/arm64 -t registry.gitlab.com/adaptivestone/example-project:latest . --push",
     "docker:build:github": "docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/$GITHUB_REPOSITORY/relayer:latest . --push"
   },
   "dependencies": {

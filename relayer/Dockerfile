@@ -4,5 +4,6 @@ WORKDIR /opt/app
 COPY --chown=node:node package.json package-lock.json ./
 USER node
 RUN npm ci
-COPY --chown=node:node index.ts ./
-CMD [ "node", "index.ts"]
+COPY --chown=node:node src/ ./src/
+EXPOSE 3300
+CMD [ "node", "src/index.ts"]
