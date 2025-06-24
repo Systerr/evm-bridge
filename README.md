@@ -481,7 +481,7 @@ function releaseTokensMultiSig(
 
 - **Benefit**: Easier to understand and debug.
 - **Cost**: May not handle all edge cases optimally.
-- **Production Alternative**: Exponential backoff, circuit breakers, dead letter queues.
+- **Production Alternative**: Exponential backoff, dead letter queues.
 
 ## Available Commands
 
@@ -492,7 +492,7 @@ Each component has its own set of commands. Check available commands for each co
 ```bash
 npm run                 # Show available commands
 npm run bridge:terminal # go to relayer terminal
-npm run bridge:logs.    # show bridge logs
+npm run bridge:logs     # show bridge logs
 docker compose up       # Start all services
 docker compose down     # Stop all services
 ```
@@ -525,3 +525,4 @@ npm run docker         # Build and run Docker container
 - Add support for multiple token types
 - Implement bidirectional bridging (Chain B → Chain A)
 - Add multi-signature relayer support
+- Refine documentation
