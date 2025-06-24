@@ -9,7 +9,7 @@ on:
       - "relayer/**"
 
 jobs:
-  test-contracts:
+  relayer-codestyle:
     runs-on: ubuntu-latest
 
     steps:
