@@ -10,6 +10,8 @@
   "scripts": {
     "test": "hardhat test",
     "compile": "hardhat compile",
-    "coverage": "SOLIDITY_COVERAGE=true hardhat coverage"
+    "coverage": "SOLIDITY_COVERAGE=true hardhat coverage",
+    "ignition:chainA": "hardhat ignition deploy ignition/modules/ChainA.ts --network chainA",
+    "ignition:chainB": "hardhat ignition deploy ignition/modules/ChainB.ts --network chainB"
   }
 }
