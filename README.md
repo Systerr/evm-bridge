@@ -51,10 +51,9 @@ All this based of well known mnemonic "test test test test test test test test t
 
 As well it runs deploy and bridge itself and node js container for you to communicate with nodes
 
-:::note
-
-Aware of different architecture.
-:::
+```
+Aware of different architecture. Do not run npm i locally and the inside docker. In case of different architecture that can cause a problem and need to remove node_modules folder and run it again
+```
 
 # Structure
 
