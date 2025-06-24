@@ -1,6 +1,10 @@
 import type { HardhatUserConfig } from "hardhat/config";
 import { loadEnvFile } from "node:process";
-loadEnvFile();
+try {
+  loadEnvFile();
+} catch {
+  // this is ok, not requried
+}
 import "@nomicfoundation/hardhat-toolbox-viem";
 const config: HardhatUserConfig = {
   solidity: "0.8.30",
