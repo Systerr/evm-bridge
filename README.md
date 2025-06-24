@@ -144,7 +144,7 @@
 
    ```bash
    npm run bridge:terminal
-   node node src/simpleInteraction.ts
+   node src/simpleInteraction.ts
 
    ```
 
