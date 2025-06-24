@@ -7,8 +7,8 @@ A TypeScript-based relayer service that monitors TokensLocked events on Chain A 
 - **Event Monitoring**: Continuously polls Chain A for TokensLocked events from BridgeA contract
 - **Message Signing**: Cryptographically signs messages using the relayer's private key
 - **Automatic Submission**: Submits signed transactions to BridgeB contract on Chain B
-- **Nonce Management**: Tracks processed nonces to prevent replay attacks and duplicate processing (simple version, in memory, for prob you should use database)
-- **Persistence**: Saves last processed block number to resume from correct position after restart (same simple interaction, for production use database)
+- **Nonce Management**: Tracks processed nonces to prevent replay attacks and duplicate processing (simple version, in memory; for production you should use a database)
+- **Persistence**: Saves last processed block number to resume from correct position after restart (same simple implementation; for production use a database)
 - **Error Handling**: Robust error handling for network issues and transaction failures
 - **Graceful Shutdown**: Handles SIGINT and SIGTERM signals for clean shutdown
 
@@ -30,7 +30,7 @@ Chain A (Source)          Relayer Service          Chain B (Destination)
 
 ## Prerequisites
 
-- Node.js 24+ (for `loadEnvFile` support an typescript support out of the box without compilers)
+- Node.js 24+ (for `loadEnvFile` support and TypeScript support out of the box without compilers)
 - Access to RPC endpoints for both chains
 - Private key for the relayer wallet (must be registered as relayer on Chain B)
 - Sufficient balance on Chain B for gas fees
@@ -87,8 +87,8 @@ DEMO_USER_PRIVATE_KEY=0x...
 | `PRIVATE_KEY`          | Yes      | Private key of the relayer wallet                                   |
 | `POLL_INTERVAL`        | No       | Polling interval in milliseconds (default: 5000)                    |
 | `LAST_BLOCK_FILE`      | No       | File path to store last processed block (default: ./last_block.txt) |
-| `OWNER_A_PRIVATE_KEY`  | No       | For usage in demo file (e2e interaction from user perspective )     |
-| `DEMO_USER_PRIVATE_KEY`| No       | For usage in demo file (e2e interaction from user perspective )     |
+| `OWNER_A_PRIVATE_KEY`  | No       | For usage in demo file (e2e interaction from user perspective)      |
+| `DEMO_USER_PRIVATE_KEY`| No       | For usage in demo file (e2e interaction from user perspective)      |
 
 ## Usage
 
@@ -124,7 +124,7 @@ event TokensLocked(
 );
 ```
 
-Instead of pulling possible to use WebSocket connection and receive events from chain
+Instead of polling, it's possible to use a WebSocket connection and receive events from the chain.
 
 ### 2. Message Construction & Signing
 
@@ -150,7 +150,7 @@ function releaseTokens(
 ### 4. State Management
 
 - **Nonce Tracking**: Maintains an in-memory set of processed nonces
-- **Block Persistence**: Saves the last processed block number to file (in case emergency stop)
+- **Block Persistence**: Saves the last processed block number to file (in case of emergency stop)
 - **Resume Capability**: On restart, resumes from the last processed block
 
 ## Error Handling
@@ -214,9 +214,9 @@ Processing TokensLocked event: {...}
 - Console output shows real-time activity
 - Last processed block is saved to `./last_block.txt` (configurable)
 
-## Codestyle
+## Code Style
 
-Codestyle and linting based on Biome. Modern succesor of eslint + prettiner writen on Rust
+Code style and linting based on Biome - a modern successor of ESLint + Prettier written in Rust.
 
 ```bash
 npm run check          # Run linting
@@ -232,10 +232,66 @@ docker build -t bridge-relayer .
 docker run --env-file .env bridge-relayer
 ```
 
-# Deploy
+# Deployment
 
-You able to use docker image to deploy on docker envirouments (kubernetes, ecs, etc). As well youa bel to use simple process with pm2
+You can use the Docker image to deploy on Docker environments (Kubernetes, ECS, etc.). You can also use a simple process with pm2.
 
 ```bash
 docker buildx build --platform linux/amd64,linux/arm64 -t {YOUR_REGISTRY}:latest . --push
 ```
+
+## Available Commands
+
+- `npm run start` - Run the relayer in production mode
+- `npm run dev` - Run the relayer in development mode with auto-restart
+- `npm run docker` - Build and run Docker container
+- `npm run check` - Run code style and linting checks
+
+## Architecture Details
+
+### Event Processing Flow
+
+```
+1. Poll Chain A for new blocks
+2. Query TokensLocked events in block range
+3. For each event:
+   ├─ Check if nonce already processed
+   ├─ Construct message hash
+   ├─ Sign message with relayer key
+   ├─ Submit transaction to Chain B
+   └─ Mark nonce as processed
+4. Save last processed block
+5. Repeat
+```
+
+### State Management
+
+- **In-Memory Nonce Set**: Tracks processed nonces during runtime
+- **File-Based Block Persistence**: Saves last processed block to disk
+- **Graceful Recovery**: Resumes from last saved block on restart
+
+### Error Recovery
+
+The relayer implements several error recovery mechanisms:
+
+- **Network Retries**: Automatic retry with exponential backoff
+- **Transaction Monitoring**: Waits for confirmation before proceeding
+- **Duplicate Handling**: Skips already processed events gracefully
+- **Balance Monitoring**: Warns when gas balance is low
+
+## Performance Considerations
+
+- **Batch Processing**: Processes multiple events in a single polling cycle
+- **Configurable Polling**: Adjustable interval to balance latency vs resource usage
+- **Memory Efficient**: Uses Set for O(1) nonce lookups
+- **Minimal Storage**: Only persists essential state information
+
+## Production Recommendations
+
+For production deployment, consider:
+
+1. **Database Integration**: Replace file-based persistence with MongoDB/PostgreSQL/Redis
+2. **Monitoring**: Add metrics collection (Prometheus/Grafana)
+3. **Alerting**: Set up alerts for failed transactions or low balance
+4. **Load Balancing**: Deploy multiple instances with shared state
+5. **Key Management**: Use secure key management systems (AWS KMS, HashiCorp Vault)

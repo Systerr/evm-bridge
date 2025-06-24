@@ -103,20 +103,61 @@
     └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-# AI generation
+# Project Status
 
-Part of code (expecially tests) generated uses AI (cline + different model). All AI code was revieved by humans
+- ✅ **Contracts**: Fully implemented with comprehensive tests
+- ✅ **Relayer**: Basic implementation with event monitoring and transaction submission
+- ✅ **Docker Setup**: Complete containerized environment
+- ✅ **CI/CD**: GitHub Actions for testing, code style checks and docker image build
+- ⚠️ **Production Ready**: Not recommended for production use (see warning above)
 
-# CI
+# Quick Start
 
-Repo contains github code to run tests and check styles on each push. This is a good approach to have CI with tests and codestyle on each push
+1. **Clone and setup:**
 
-# Docker usage
+   ```bash
+   git clone git@github.com:Systerr/evm-bridge.git
+   cd bridge
+   ```
 
-You should not run code downloaded from the 'internet' on your local compoter, expecially when we talk about blockchain projects.
-Docker provide nessesasry isilations fo for you to work with
+2. **Start with Docker (Recommended):**
 
-It strats two chains based on regular well knonw private keys
+   ```bash
+   docker compose up
+   ```
+
+3. **Manual setup (Alternative):**
+
+   ```bash
+   # Install dependencies for each component
+   cd contracts && npm install && cd ..
+   cd relayer && npm install && cd ..
+
+   # Configure environment files
+   cp contracts/.env.example contracts/.env
+   cp relayer/.env.example relayer/.env
+
+   # Edit .env files with your configuration
+   ```
+
+4. Run demo interaction
+
+```bash
+npm run bridge:terminal
+node node src/simpleInteraction.ts
+
+```
+
+# AI Generation
+
+Part of the code (especially tests) was generated using AI (Cline + different models). All AI-generated code was reviewed by humans.
+
+# Docker Usage
+
+You should not run code downloaded from the internet on your local computer, especially when dealing with blockchain projects.
+Docker provides necessary isolation for you to work with the project safely.
+
+It starts two chains based on regular well-known private keys:
 
 ```
 (0) 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 (we are using it as owner on chain A)
@@ -131,7 +172,7 @@ It strats two chains based on regular well knonw private keys
 (9) 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
 ```
 
-that corresponds to accounts
+That corresponds to accounts:
 
 ```
 (0) 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000.000000000000000000 ETH)
@@ -146,30 +187,30 @@ that corresponds to accounts
 (9) 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 (10000.000000000000000000 ETH)
 ```
 
-All this based of well known mnemonic "test test test test test test test test test test test junk"
+All this is based on the well-known mnemonic "test test test test test test test test test test test junk"
 
-As well it runs deploy and bridge itself and node js container for you to communicate with nodes
+It also runs deployment and the bridge itself, plus a Node.js container for you to communicate with the nodes.
 
 ```
-Aware of different architecture. Do not run npm i locally and the inside docker. In case of different architecture that can cause a problem and need to remove node_modules folder and run it again
+Be aware of different architectures. Do not run npm i locally and then inside Docker. In case of different architecture, this can cause problems and you'll need to remove the node_modules folder and run it again.
 ```
 
 # Structure
 
-Project contains multiple folders that part of one project, but not depend of each other.
-Each of folders contains own modules, own build and test system
+The project contains multiple folders that are part of one project, but do not depend on each other.
+Each folder contains its own modules, build system, and test system.
 
-For each project you able to check avaialbe commands via
+For each project, you can check available commands via:
 
 ```bash
 npm run
 ```
 
-Please follow "contract" and "bridge" folder for readme file for each of the project
+Please follow the "contracts" and "relayer" folder README files for each component of the project.
 
-# Instalation
+# Installation
 
-Each folder contain own instalation process. But on general you need to have nodejs isntallde (version 24)
+Each folder contains its own installation process. In general, you need to have Node.js installed (version 24).
 
 ```bash
 https://nodejs.org/en/download
@@ -179,37 +220,308 @@ https://nodejs.org/en/download
 npm i
 ```
 
-But we defenetely recomenned to use docker compsoe to run efveretrhing
+However, we definitely recommend using Docker Compose to run everything:
 
 ```bash
 docker compose up
 ```
 
-## Env notes
+## Environment Notes
 
-Docekr have preconfigured variables to work independendty. It possible to use deployed adresses of contracts before it deployed not because of CREATE2 command, but because we have same chain and same deploy bytecode and same nonces of account
+Docker has preconfigured variables to work independently. It's possible to use deployed addresses of contracts before they are deployed - not because of the CREATE2 command, but because we have the same chain, same deploy bytecode, and same nonces of accounts.
 
-In real live you shoud deploy and then configure ENV variables for a real addresses
+In real life, you should deploy first and then configure ENV variables with real addresses.
 
-# Deploy
+# Deployment
 
-Each component have own deploy mechanics
+Each component has its own deployment mechanics:
 
-- contract - uses hardhat ignation module to deploy
-- relayer - can be deployed on docker or directly wiht pm2
+- **contracts** - uses Hardhat Ignition module to deploy
+- **relayer** - can be deployed on Docker or directly with pm2
 
-Please follow each component documentation for more info
+Please follow each component's documentation for more information.
 
-# Moving tokens back to original chain
+# Moving Tokens Back to Original Chain
 
-This part not implemented but idea tha same
+This part is not implemented, but the idea is the same:
 
-- send it to bridgeB
-- bridgeB will lock it or burn (new feature)
-- brideB will emit event
-- relayer will listen for event
-- relayer will send data back to bridgeA to unlock tokens
+- Send tokens to BridgeB
+- BridgeB will lock or burn them (new feature)
+- BridgeB will emit an event
+- Relayer will listen for the event
+- Relayer will send data back to BridgeA to unlock tokens
 
-# Tech details (both contracts and relayer)
+# Smart Contract Design Choices
 
-## Contracts
+## BridgeA.sol Design Decisions
+
+### Architecture Choices
+
+- **Lock-and-Mint Pattern**: Implemented a lock-and-mint mechanism where tokens are locked on the source chain rather than burned. This preserves the original token supply and allows for easier recovery in emergency situations.
+- **Immutable Token Address**: The `superToken` address is immutable to prevent unauthorized token changes after deployment, ensuring the bridge only works with the intended token.
+- **Sequential Nonce System**: Uses a simple incrementing counter starting from 1 (not 0) to ensure unique transaction identification and prevent replay attacks.
+- **Event-Driven Architecture**: Emits `TokensLocked` events with indexed parameters for efficient off-chain monitoring and filtering.
+
+### Security Features
+
+- **SafeERC20 Usage**: Implements OpenZeppelin's SafeERC20 to handle tokens that don't return boolean values properly.
+- **Owner-Only Withdrawal**: Emergency `withdrawTokens()` function restricted to contract owner for fund recovery scenarios.
+- **Input Validation**: Validates token address is not zero during construction.
+
+### Gas Optimization
+
+- **Minimal Storage**: Only stores essential data (nonce counter and immutable token address).
+- **Efficient Event Emission**: Uses indexed parameters for gas-efficient event filtering.
+
+## BridgeB.sol Design Decisions
+
+### Signature Verification System
+
+- **ECDSA + Message Hashing**: Uses OpenZeppelin's ECDSA library with `MessageHashUtils` for secure signature verification.
+- **Deterministic Message Hash**: Creates consistent message hashes using `keccak256(abi.encodePacked(recipient, amount, nonce))` to match off-chain signing.
+- **Ethereum Signed Message Hash**: Applies Ethereum's signed message prefix for standard wallet compatibility.
+
+### Access Control
+
+- **Dual Permission Model**: Separates owner permissions from relayer permissions for operational security.
+- **Updatable Relayer**: Allows owner to update relayer address in case of key compromise.
+- **Mint Authorization**: Only the bridge contract can mint tokens, preventing unauthorized token creation.
+
+### Replay Protection
+
+- **Nonce Mapping**: Maintains a mapping of used nonces to prevent replay attacks.
+- **Permanent Nonce Marking**: Once used, nonces cannot be reused, ensuring transaction uniqueness.
+
+# Relayer Service Logic
+
+## Event Monitoring System
+
+### Polling Strategy
+
+- **Block Range Processing**: Processes events in block ranges rather than individual blocks for efficiency.
+- **Resumable Operation**: Saves last processed block to file system for restart capability.
+- **Configurable Polling**: Adjustable polling interval (default 5 seconds) to balance responsiveness and resource usage.
+
+### Event Detection
+
+```typescript
+// Event filtering and processing
+const filter = this.bridgeAContract.filters.TokensLocked();
+const events = await this.bridgeAContract.queryFilter(
+  filter,
+  fromBlock,
+  toBlock
+);
+```
+
+## Message Construction and Signing
+
+### Cryptographic Process
+
+1. **Message Hash Creation**:
+
+   ```typescript
+   const messageHash = ethers.keccak256(
+     ethers.solidityPacked(
+       ["address", "uint256", "uint256"],
+       [recipient, amount, nonce]
+     )
+   );
+   ```
+
+2. **Signature Generation**:
+   ```typescript
+   const signature = await this.wallet.signMessage(
+     ethers.getBytes(messageHash)
+   );
+   ```
+
+### Security Considerations
+
+- **Private Key Management**: Uses ethers.js Wallet for secure key handling.
+- **Message Consistency**: Ensures message hash format matches smart contract expectations exactly.
+
+## Nonce Management and Replay Protection
+
+### In-Memory Tracking
+
+- **Processed Nonces Set**: Maintains `Set<string>` of processed nonces to prevent duplicate processing.
+- **Persistent State**: Saves last processed block number to file system for recovery.
+
+### Error Handling Strategy
+
+- **Duplicate Detection**: Gracefully handles already-processed nonces without failing.
+- **Network Resilience**: Implements retry logic with exponential backoff for network issues.
+- **Transaction Monitoring**: Waits for transaction confirmation before marking nonces as processed.
+
+## Transaction Submission Process
+
+### Chain B Interaction
+
+```typescript
+const tx = await this.bridgeBContract.releaseTokens(
+  event.destinationAddress,
+  event.amount,
+  event.nonce,
+  signature
+);
+```
+
+### Confirmation Strategy
+
+- **Receipt Waiting**: Waits for transaction receipt before considering operation complete.
+- **Status Verification**: Checks transaction status (success/failure) before proceeding.
+- **Gas Management**: Monitors wallet balance and warns about insufficient funds.
+
+# Security Implications and Trust Assumptions
+
+## Current Security Model
+
+### Trust Assumptions
+
+1. **Single Relayer Trust**: The current implementation relies on a single relayer private key, creating a central point of trust and failure.
+2. **Key Security**: Security depends entirely on the relayer private key remaining secure and not being compromised.
+3. **Operational Honesty**: Assumes the relayer will operate honestly and not sign fraudulent transactions.
+4. **Network Availability**: Relies on both chains being available and the relayer service running continuously.
+
+### Attack Vectors
+
+1. **Relayer Key Compromise**: If the relayer private key is stolen, attackers could mint unlimited tokens on Chain B.
+
+### Current Mitigations
+
+- **Nonce-Based Replay Protection**: Prevents transaction replay attacks.
+- **Signature Verification**: Ensures only authorized relayer can trigger mints.
+- **Event-Driven Architecture**: Provides transparency and auditability.
+- **Emergency Withdrawal**: Owner can recover locked funds if needed.
+
+## Production-Grade Bridge Mitigation Strategies
+
+### Multi-Signature Relayers
+
+```solidity
+// Example: Multi-sig verification
+mapping(address => bool) public authorizedRelayers;
+uint256 public requiredSignatures = 3;
+
+function releaseTokensMultiSig(
+    address recipient,
+    uint256 amount,
+    uint256 nonce,
+    bytes[] memory signatures
+) external {
+    require(signatures.length >= requiredSignatures, "Insufficient signatures");
+
+    bytes32 messageHash = getMessageHash(recipient, amount, nonce);
+    address[] memory signers = new address[](signatures.length);
+
+    for (uint i = 0; i < signatures.length; i++) {
+        address signer = messageHash.toEthSignedMessageHash().recover(signatures[i]);
+        require(authorizedRelayers[signer], "Unauthorized signer");
+        // Check for duplicate signers
+        for (uint j = 0; j < i; j++) {
+            require(signers[j] != signer, "Duplicate signer");
+        }
+        signers[i] = signer;
+    }
+
+    // Proceed with minting...
+}
+```
+
+### Optimistic Fraud Proofs
+
+- **Challenge Period**: Implement a delay period where transactions can be challenged.
+- **Fraud Proof System**: Allow validators to submit proofs of invalid transactions.
+- **Slashing Mechanism**: Penalize malicious relayers by slashing their staked tokens.
+
+### Zero-Knowledge Proof Systems
+
+- **ZK-SNARKs/STARKs**: Use zero-knowledge proofs to verify transaction validity without revealing sensitive data.
+- **Merkle Tree Proofs**: Batch multiple transactions and prove inclusion in a Merkle tree.
+- **Recursive Proofs**: Enable efficient verification of large transaction batches.
+
+### Decentralized Validator Networks
+
+- **Proof-of-Stake Validation**: Implement a network of staked validators who must reach consensus.
+- **Economic Incentives**: Reward honest validators and slash malicious ones.
+- **Rotation Mechanism**: Regularly rotate validator sets to prevent collusion.
+
+# Design Trade-offs and Time Constraints
+
+## Simplifications Made
+
+### Single Relayer Design
+
+**Trade-off**: Chose single relayer for simplicity over multi-signature system.
+
+- **Benefit**: Faster development, easier testing, lower gas costs.
+- **Cost**: Single point of failure, higher trust requirements.
+- **Production Alternative**: Multi-signature relayer network with consensus mechanism.
+
+### In-Memory State Management
+
+**Trade-off**: Used in-memory nonce tracking instead of persistent database.
+
+- **Benefit**: Simpler implementation, no database dependencies.
+- **Cost**: State loss on service restart, limited scalability.
+- **Production Alternative**: Redis/PostgreSQL for persistent state management.
+
+### Polling vs WebSocket
+
+**Trade-off**: Implemented polling instead of WebSocket event listening.
+
+- **Benefit**: More reliable, easier error handling, works with any RPC provider.
+- **Cost**: Higher latency, more resource usage.
+- **Production Alternative**: WebSocket with fallback to polling for reliability.
+
+### Basic Error Handling
+
+**Trade-off**: Simple retry logic instead of sophisticated error recovery.
+
+- **Benefit**: Easier to understand and debug.
+- **Cost**: May not handle all edge cases optimally.
+- **Production Alternative**: Exponential backoff, circuit breakers, dead letter queues.
+
+## Available Commands
+
+Each component has its own set of commands. Check available commands for each component:
+
+**Root level:**
+
+```bash
+npm run                 # Show available commands
+npm run bridge:terminal # go to relayer terminal
+npm run bridge:logs.    # show bridge logs
+docker compose up       # Start all services
+docker compose down     # Stop all services
+```
+
+**Contracts:**
+
+```bash
+cd contracts
+npm test               # Run contract tests
+npm run compile        # Compile contracts
+npm run coverage       # Generate test coverage
+npm run ignition:chainA # Deploy to Chain A
+npm run ignition:chainB # Deploy to Chain B
+```
+
+**Relayer:**
+
+```bash
+cd relayer
+npm start              # Run in production mode
+npm run dev            # Run in development mode
+npm run check          # Run linting
+npm run docker         # Build and run Docker container
+```
+
+# Future Updates
+
+- Implement modern monitoring solutions (Pino.js) for log integrations and alerting
+- Move codebase to Foundry or Hardhat v3 (at development time it was an early alpha version)
+- Add support for multiple token types
+- Implement bidirectional bridging (Chain B → Chain A)
+- Add multi-signature relayer support

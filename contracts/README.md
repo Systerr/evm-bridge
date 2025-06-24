@@ -1,6 +1,6 @@
-# Bridge contract
+# Bridge Contracts
 
-This folder contains solidity contracts for bridge
+This folder contains Solidity contracts for the bridge system.
 
 ## Overview
 
@@ -18,24 +18,24 @@ The bridge system consists of:
 
 ## Super Token
 
-There are two simple OpenZepelin ERC20 constract. Both with premint amount of token, no any caps (in real world cap shouls be set, at least max cap)
+There are two simple OpenZeppelin ERC20 contracts. Both have a preminted amount of tokens with no caps (in the real world, caps should be set, at least a maximum cap).
 
 ### Permissions
 
-- `SuperToken` - SuperToken have no special owner methods
-- `SuperTokenB` - have two additional permissions - owner and relay address. Both of this users able to mint new tokens. Owner is a EOA in most cases but relay is a smart contract address of bridge that will mint tokens after verify signatures
-  Secod option mostly to have more security (in case relayer private key will be compomized and final implementation will implement limits of mint tokens with proper monitoring)
+- `SuperToken` - SuperToken has no special owner methods
+- `SuperTokenB` - has two additional permissions: owner and relay address. Both of these users are able to mint new tokens. The owner is an EOA in most cases, but the relay is a smart contract address of the bridge that will mint tokens after verifying signatures.
+  The second option is mostly to have more security (in case the relayer private key is compromised, the final implementation will implement limits on minting tokens with proper monitoring).
 
-## Bridge contracts
+## Bridge Contracts
 
-There are two bridge contracts for chain A and chain B
+There are two bridge contracts for Chain A and Chain B:
 
-- `Bridge` have only one permissions - owner. With ability to widwdraw token from brifge
-- `BridgeB` have more complicated permission. Owner is one role there, but it also should known bridgeAddress (signer) - address of the system to sign transfers
+- `Bridge` has only one permission - owner, with the ability to withdraw tokens from the bridge
+- `BridgeB` has more complicated permissions. Owner is one role, but it also needs to know the bridgeAddress (signer) - the address of the system that signs transfers
 
-# Instalitaion
+# Installation
 
-Please follow Docker guilde on main folder for easier setup.
+Please follow the Docker guide in the main folder for easier setup.
 
 ## Prerequisites
 
@@ -44,13 +44,15 @@ Please follow Docker guilde on main folder for easier setup.
 3. RPC endpoints for both target chains
 4. Bridge relay address for signing cross-chain transactions
 
-5. **Install dependencies:**
+## Setup
+
+1. **Install dependencies:**
 
    ```bash
    npm install
    ```
 
-6. **Configure environment:**
+2. **Configure environment:**
 
    ```bash
    cp .env.example .env
@@ -77,7 +79,7 @@ Please follow Docker guilde on main folder for easier setup.
 
 This guide explains how to deploy the bridge system to two separate chains using Hardhat Ignition.
 
-## Using npm scripts (Recommended)
+## Using npm Scripts (Recommended)
 
 **Deploy to Chain A:**
 
@@ -91,7 +93,7 @@ npm run ignition:chainA
 npm run ignition:chainB
 ```
 
-### Using Hardhat Ignition directly
+## Using Hardhat Ignition Directly
 
 **Deploy to Chain A:**
 
@@ -105,7 +107,7 @@ npx hardhat ignition deploy ignition/modules/ChainA.ts --network chainA
 npx hardhat ignition deploy ignition/modules/ChainB.ts --network chainB
 ```
 
-### Custom Parameters
+## Custom Parameters
 
 You can customize the initial token supply using inline parameters:
 
@@ -140,28 +142,28 @@ npx hardhat ignition deploy ignition/modules/ChainB.ts --network chainB --parame
 After successful deployment:
 
 1. **Save contract addresses** from the deployment output
-2. **Verify the relay address** is correctly set in BridgeB contract
+2. **Verify the relay address** is correctly set in the BridgeB contract
 3. **Test with small amounts** before production use
 
 ## Bridge Operation Flow
 
 1. **Lock tokens on Chain A:**
 
-   - User calls `lockTokens(amount, recipientOnChainB)` on Bridge contract
+   - User calls `lockTokens(amount, recipientOnChainB)` on the Bridge contract
    - Bridge emits `TokensLocked` event with nonce, recipient, and amount
 
 2. **Release tokens on Chain B:**
    - Off-chain service monitors `TokensLocked` events
-   - Service creates signature for the transfer
+   - Service creates a signature for the transfer
    - User (or service) calls `releaseTokens(recipient, amount, nonce, signature)` on BridgeB
-   - BridgeB verifies signature and mints tokens to recipient
+   - BridgeB verifies the signature and mints tokens to the recipient
 
 ## Security Considerations
 
 1. **Private Key Security:** Keep deployment private keys secure and separate
 2. **Bridge Relay Address:** The relay address should be properly secured as it signs cross-chain transfers
 3. **Initial Supply:** Default is 1M tokens per chain - adjust as needed
-4. **Permissions:** Only BridgeB contract can mint SuperTokenB tokens
+4. **Permissions:** Only the BridgeB contract can mint SuperTokenB tokens
 
 ## Troubleshooting
 
@@ -170,18 +172,76 @@ After successful deployment:
 1. **Missing CHAIN_B_RELAY_ADDRESS:** Deployment will warn if not provided - set this for production
 2. **Insufficient funds:** Ensure deployment accounts have enough native tokens for gas
 3. **Network configuration:** Verify RPC URLs are accessible
-4. **Private key format:** Ensure private keys are without '0x' prefix
+4. **Private key format:** Ensure private keys are without the '0x' prefix
 
-**Available Commands:**
+## Available Commands
 
 - `npm test` - Run contract tests
 - `npm run compile` - Compile contracts
 - `npm run coverage` - Generate test coverage report
+- `npm run ignition:chainA` - Deploy to Chain A
+- `npm run ignition:chainB` - Deploy to Chain B
 
 # Testing
 
-Project uses hardhat test enviroument for testing
+The project uses the Hardhat test environment for testing:
 
 ```bash
 npm test
 ```
+
+## Test Coverage
+
+Generate test coverage report:
+
+```bash
+npm run coverage
+```
+
+## Code Style
+
+The project follows standard Solidity formatting and linting practices. Compile contracts to check for any issues:
+
+```bash
+npm run compile
+```
+
+## Environment Variables
+
+The contracts use the following environment variables for deployment:
+
+| Variable                | Required | Description                                    |
+| ----------------------- | -------- | ---------------------------------------------- |
+| `OWNER_A_PRIVATE_KEY`   | Yes      | Private key for Chain A deployment             |
+| `OWNER_B_PRIVATE_KEY`   | Yes      | Private key for Chain B deployment             |
+| `CHAIN_A_RPC_URL`       | Yes      | RPC endpoint for Chain A                       |
+| `CHAIN_B_RPC_URL`       | Yes      | RPC endpoint for Chain B                       |
+| `CHAIN_B_RELAY_ADDRESS` | No       | Bridge relay address for signing transactions |
+
+
+## Architecture Details
+
+### Contract Interactions
+
+```
+User ──► SuperToken.approve() ──► Bridge.lockTokens()
+                                      │
+                                      ▼
+                              TokensLocked Event
+                                      │
+                                      ▼
+                              Relayer Service
+                                      │
+                                      ▼
+                          BridgeB.releaseTokens()
+                                      │
+                                      ▼
+                          SuperTokenB.mint() ──► User receives tokens
+```
+
+### Security Features
+
+- **Nonce-based replay protection**: Each transaction has a unique nonce
+- **Signature verification**: Only authorized relayer can trigger mints
+- **Owner controls**: Emergency withdrawal and relay address management
+- **Immutable token addresses**: Prevents unauthorized token changes
