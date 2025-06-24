@@ -1,11 +1,11 @@
 import { loadEnvFile } from "node:process";
 import readline from "node:readline/promises";
+import { setTimeout } from "node:timers/promises";
 import { ethers } from "ethers";
-import { setTimeout } from "timers/promises";
 
 try {
   loadEnvFile();
-} catch (error) {
+} catch {
   // .env file might not exist, which is fine
 }
 

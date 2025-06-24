@@ -1,7 +1,7 @@
+import fs from "node:fs/promises";
 import { loadEnvFile } from "node:process";
+import { setTimeout } from "node:timers/promises";
 import { ethers } from "ethers";
-import fs from "fs/promises";
-import { setTimeout } from "timers/promises";
 import { BRIDGE_A_ABI, BRIDGE_B_ABI } from "./modules/abi.ts";
 import type { Config } from "./modules/config.ts";
 import { loadConfig } from "./modules/config.ts";
@@ -9,7 +9,7 @@ import { loadConfig } from "./modules/config.ts";
 // Load environment variables
 try {
   loadEnvFile();
-} catch (error) {
+} catch {
   // .env file might not exist, which is fine
 }
 
@@ -67,7 +67,7 @@ class BridgeRelayer {
       const blockNumber = parseInt(data.trim());
       console.log(`Resuming from last processed block: ${blockNumber}`);
       return blockNumber;
-    } catch (error) {
+    } catch {
       // File doesn't exist or other error - this is fine for first run
       console.log("No previous block file found, starting fresh");
     }
