@@ -7,7 +7,15 @@ try {
 }
 import "@nomicfoundation/hardhat-toolbox-viem";
 const config: HardhatUserConfig = {
-  solidity: "0.8.30",
+  solidity: {
+    version: "0.8.30",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
   networks: {
     chainA: {
       url: process.env.CHAIN_A_RPC_URL || "http://localhost:8545",
