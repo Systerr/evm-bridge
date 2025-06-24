@@ -51,6 +51,7 @@ contract Bridge is Ownable {
      * @param recipientOnChainB recepient address on second
      */
     function lockTokens(uint256 amount, address recipientOnChainB) public {
+        // TODO there will be good to a collect fee
         IERC20(superToken).transferFrom(msg.sender, address(this), amount);
         _currentNonce += 1; // we will start from 1 not 0
         emit TokensLocked(_currentNonce, recipientOnChainB, amount);
