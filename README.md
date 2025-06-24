@@ -6,11 +6,9 @@
 
 ## Demo Video
 
-Click on the link to view it
+Click on the link to view it (it will open on the same tab. MD github bug)
 
-<a href="https://www.youtube.com/watch?v=nPUHRzomYcs" target="_blank" rel="noopener noreferrer">
-  <img src="https://img.youtube.com/vi/nPUHRzomYcs/maxresdefault.jpg" alt="Watch the video" style="max-width: 100%;">
-</a>
+[![Watch the video](https://img.youtube.com/vi/nPUHRzomYcs/maxresdefault.jpg)](https://www.youtube.com/watch?v=nPUHRzomYcs)
 
 ## Bridge Working Flow
 
