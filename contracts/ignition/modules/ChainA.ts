@@ -9,7 +9,7 @@ const ChainAModule = buildModule("ChainAModule", (m) => {
   const superToken = m.contract("SuperToken", [initialSupply]);
 
   // Deploy Bridge with SuperToken address
-  const bridge = m.contract("Bridge", [superToken]);
+  const bridge = m.contract("BridgeA", [superToken]);
 
   return { 
     superToken, 

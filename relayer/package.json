@@ -2,7 +2,7 @@
   "name": "relayer",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "scripts": {
     "check": "npx @biomejs/biome check",
     "docker": "npm ci && node index.ts",

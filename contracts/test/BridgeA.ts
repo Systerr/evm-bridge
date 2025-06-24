@@ -3,7 +3,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { getAddress, parseEther, zeroAddress, parseAbiItem } from "viem";
 
-describe("Bridge", function () {
+describe("BridgeA", function () {
   // We define a fixture to reuse the same setup in every test.
   async function deployBridgeFixture() {
     const initialSupply = parseEther("1000000"); // 1 million tokens
@@ -17,7 +17,7 @@ describe("Bridge", function () {
     ]);
 
     // Deploy Bridge with SuperToken address
-    const bridge = await hre.viem.deployContract("Bridge", [
+    const bridge = await hre.viem.deployContract("BridgeA", [
       superToken.address,
     ]);
 
@@ -54,7 +54,7 @@ describe("Bridge", function () {
 
     it("Should revert if SuperToken address is zero", async function () {
       await expect(
-        hre.viem.deployContract("Bridge", [zeroAddress])
+        hre.viem.deployContract("BridgeA", [zeroAddress])
       ).to.be.rejectedWith("Token address cannot be zero");
     });
 
@@ -176,7 +176,7 @@ describe("Bridge", function () {
       const superToken = await hre.viem.deployContract("SuperToken", [
         initialSupply,
       ]);
-      const bridge = await hre.viem.deployContract("Bridge", [
+      const bridge = await hre.viem.deployContract("BridgeA", [
         superToken.address,
       ]);
       const publicClient = await hre.viem.getPublicClient();
@@ -661,7 +661,7 @@ describe("Bridge", function () {
       const superToken = await hre.viem.deployContract("SuperToken", [
         initialSupply,
       ]);
-      const bridge = await hre.viem.deployContract("Bridge", [
+      const bridge = await hre.viem.deployContract("BridgeA", [
         superToken.address,
       ]);
       const publicClient = await hre.viem.getPublicClient();
@@ -775,7 +775,7 @@ describe("Bridge", function () {
       const superToken = await hre.viem.deployContract("SuperToken", [
         initialSupply,
       ]);
-      const bridge = await hre.viem.deployContract("Bridge", [
+      const bridge = await hre.viem.deployContract("BridgeA", [
         superToken.address,
       ]);
       const publicClient = await hre.viem.getPublicClient();
@@ -837,7 +837,7 @@ describe("Bridge", function () {
       const maxSupplyToken = await hre.viem.deployContract("SuperToken", [
         maxSupply,
       ]);
-      const bridge = await hre.viem.deployContract("Bridge", [
+      const bridge = await hre.viem.deployContract("BridgeA", [
         maxSupplyToken.address,
       ]);
 

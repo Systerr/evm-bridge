@@ -30,7 +30,7 @@ describe("Bridge End-to-End Tests", function () {
     ]);
 
     // Deploy Bridge (Chain A)
-    const bridge = await hre.viem.deployContract("Bridge", [
+    const bridge = await hre.viem.deployContract("BridgeA", [
       superToken.address,
     ]);
 
