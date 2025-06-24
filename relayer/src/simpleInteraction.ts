@@ -1,7 +1,7 @@
-import { ethers } from "ethers";
-import { setTimeout } from "timers/promises";
 import { loadEnvFile } from "node:process";
 import readline from "node:readline/promises";
+import { ethers } from "ethers";
+import { setTimeout } from "timers/promises";
 
 try {
   loadEnvFile();
@@ -9,8 +9,8 @@ try {
   // .env file might not exist, which is fine
 }
 
-import { loadConfig, loadDemoConfig } from "./modules/config.ts";
 import { BRIDGE_A_ABI, BRIDGE_B_ABI, SUPER_TOKEN_ABI } from "./modules/abi.ts";
+import { loadConfig, loadDemoConfig } from "./modules/config.ts";
 
 /**
  * Simple Bridge User Interaction Script
@@ -61,25 +61,25 @@ class BridgeInteractionDemo {
     // Initialize owner wallet (acts as token owner for demo)
     this.ownerWallet = new ethers.Wallet(
       demoConfig.ownerAPrivateKey,
-      this.chainAProvider
+      this.chainAProvider,
     );
 
     this.userWalletA = new ethers.Wallet(
       demoConfig.demoUserPrivateKey,
-      this.chainAProvider
+      this.chainAProvider,
     );
 
     // Initialize contracts
     this.bridgeAContract = new ethers.Contract(
       mainConfig.bridgeAAddress,
       BRIDGE_A_ABI,
-      this.chainAProvider
+      this.chainAProvider,
     );
 
     this.bridgeBContract = new ethers.Contract(
       mainConfig.bridgeBAddress,
       BRIDGE_B_ABI,
-      this.chainBProvider
+      this.chainBProvider,
     );
   }
 
@@ -88,7 +88,7 @@ class BridgeInteractionDemo {
     this.superTokenContract = new ethers.Contract(
       superTokenAddress,
       SUPER_TOKEN_ABI,
-      this.chainAProvider
+      this.chainAProvider,
     );
 
     const superTokenBAddress = await this.bridgeBContract.superTokenB();
@@ -96,7 +96,7 @@ class BridgeInteractionDemo {
     this.superTokenBContract = new ethers.Contract(
       superTokenBAddress,
       SUPER_TOKEN_ABI,
-      this.chainBProvider
+      this.chainBProvider,
     );
   }
 
@@ -106,7 +106,7 @@ class BridgeInteractionDemo {
    */
   async step1_OwnerSendsTokensToUser(
     userAddress: string,
-    amount: string
+    amount: string,
   ): Promise<void> {
     console.log("\n=== STEP 1: OWNER SENDS TOKENS TO USER ===");
     console.log(`👤 Owner Address: ${this.ownerWallet.address}`);
@@ -116,17 +116,17 @@ class BridgeInteractionDemo {
     try {
       // Check owner's balance
       const ownerBalance = await this.superTokenContract.balanceOf(
-        this.ownerWallet.address
+        this.ownerWallet.address,
       );
       console.log(
-        `📊 Owner's current balance: ${ethers.formatEther(ownerBalance)} SUP`
+        `📊 Owner's current balance: ${ethers.formatEther(ownerBalance)} SUP`,
       );
 
       if (ownerBalance < ethers.parseEther(amount)) {
         throw new Error(
           `Insufficient balance. Owner has ${ethers.formatEther(
-            ownerBalance
-          )} SUP, needs ${amount} SUP`
+            ownerBalance,
+          )} SUP, needs ${amount} SUP`,
         );
       }
 
@@ -144,14 +144,14 @@ class BridgeInteractionDemo {
       // Verify transfer
       const userBalance = await this.superTokenContract.balanceOf(userAddress);
       console.log(
-        `💰 User's new balance: ${ethers.formatEther(userBalance)} SUP`
+        `💰 User's new balance: ${ethers.formatEther(userBalance)} SUP`,
       );
 
       const newOwnerBalance = await this.superTokenContract.balanceOf(
-        this.ownerWallet.address
+        this.ownerWallet.address,
       );
       console.log(
-        `💰 Owner's new balance: ${ethers.formatEther(newOwnerBalance)} SUP`
+        `💰 Owner's new balance: ${ethers.formatEther(newOwnerBalance)} SUP`,
       );
     } catch (error) {
       console.error("❌ Error in step 1:", error);
@@ -174,27 +174,27 @@ class BridgeInteractionDemo {
 
       // Check user's current balance
       const userBalance = await this.superTokenContract.balanceOf(
-        this.userWalletA.address
+        this.userWalletA.address,
       );
       console.log(
-        `📊 User's current balance: ${ethers.formatEther(userBalance)} SUP`
+        `📊 User's current balance: ${ethers.formatEther(userBalance)} SUP`,
       );
 
       if (userBalance < ethers.parseEther(amount)) {
         throw new Error(
           `Insufficient balance. User has ${ethers.formatEther(
-            userBalance
-          )} SUP, needs ${amount} SUP`
+            userBalance,
+          )} SUP, needs ${amount} SUP`,
         );
       }
 
       // Check current allowance
       const currentAllowance = await this.superTokenContract.allowance(
         this.userWalletA.address,
-        this.bridgeAContract.target
+        this.bridgeAContract.target,
       );
       console.log(
-        `📊 Current allowance: ${ethers.formatEther(currentAllowance)} SUP`
+        `📊 Current allowance: ${ethers.formatEther(currentAllowance)} SUP`,
       );
 
       // Approve tokens
@@ -211,7 +211,7 @@ class BridgeInteractionDemo {
       // Verify approval
       const newAllowance = await this.superTokenContract.allowance(
         this.userWalletA.address,
-        this.bridgeAContract.target
+        this.bridgeAContract.target,
       );
       console.log(`💰 New allowance: ${ethers.formatEther(newAllowance)} SUP`);
 
@@ -228,7 +228,7 @@ class BridgeInteractionDemo {
    */
   async step3_UserLocksTokensOnBridge(
     amount: string,
-    destinationAddress?: string
+    destinationAddress?: string,
   ): Promise<BridgeTransaction> {
     console.log("\n=== STEP 3: USER LOCKS TOKENS ON CHAIN A BRIDGE ===");
 
@@ -244,25 +244,25 @@ class BridgeInteractionDemo {
       // Check allowance
       const allowance = await this.superTokenContract.allowance(
         this.userWalletA.address,
-        this.bridgeAContract.target
+        this.bridgeAContract.target,
       );
 
       if (allowance < ethers.parseEther(amount)) {
         throw new Error(
           `Insufficient allowance. Current: ${ethers.formatEther(
-            allowance
-          )} SUP, needed: ${amount} SUP`
+            allowance,
+          )} SUP, needed: ${amount} SUP`,
         );
       }
 
       // Get current bridge balance for verification
       const bridgeBalanceBefore = await this.superTokenContract.balanceOf(
-        this.bridgeAContract.target
+        this.bridgeAContract.target,
       );
       console.log(
         `📊 Bridge balance before: ${ethers.formatEther(
-          bridgeBalanceBefore
-        )} SUP`
+          bridgeBalanceBefore,
+        )} SUP`,
       );
 
       // Lock tokens
@@ -306,17 +306,17 @@ class BridgeInteractionDemo {
 
       // Verify balances
       const userBalanceAfter = await this.superTokenContract.balanceOf(
-        this.userWalletA.address
+        this.userWalletA.address,
       );
       const bridgeBalanceAfter = await this.superTokenContract.balanceOf(
-        this.bridgeAContract.target
+        this.bridgeAContract.target,
       );
 
       console.log(
-        `📊 User balance after: ${ethers.formatEther(userBalanceAfter)} SUP`
+        `📊 User balance after: ${ethers.formatEther(userBalanceAfter)} SUP`,
       );
       console.log(
-        `📊 Bridge balance after: ${ethers.formatEther(bridgeBalanceAfter)} SUP`
+        `📊 Bridge balance after: ${ethers.formatEther(bridgeBalanceAfter)} SUP`,
       );
 
       const bridgeTransaction: BridgeTransaction = {
@@ -329,7 +329,7 @@ class BridgeInteractionDemo {
 
       console.log("🎉 Tokens successfully locked on Chain A!");
       console.log(
-        `📝 TokensLocked event emitted - relayer will process this automatically`
+        `📝 TokensLocked event emitted - relayer will process this automatically`,
       );
       console.log(`🔄 The relayer service (index.ts) will now:`);
       console.log(`   1. Detect the TokensLocked event`);
@@ -351,7 +351,7 @@ class BridgeInteractionDemo {
    */
   async step4_MonitorChainBForArrival(
     bridgeTransaction: BridgeTransaction,
-    timeoutSeconds: number = 60
+    timeoutSeconds: number = 60,
   ): Promise<void> {
     console.log("\n=== STEP 4: MONITOR CHAIN B FOR TOKEN ARRIVAL ===");
     console.log(`🔍 Monitoring for tokens to arrive on Chain B...`);
@@ -359,17 +359,17 @@ class BridgeInteractionDemo {
     console.log(`🎫 Watching for nonce: ${bridgeTransaction.nonce}`);
     console.log(`🎯 Destination: ${bridgeTransaction.destinationAddress}`);
     console.log(
-      `💰 Expected amount: ${ethers.formatEther(bridgeTransaction.amount)} SUP`
+      `💰 Expected amount: ${ethers.formatEther(bridgeTransaction.amount)} SUP`,
     );
 
     try {
       const initialBalance = await this.superTokenBContract.balanceOf(
-        bridgeTransaction.destinationAddress
+        bridgeTransaction.destinationAddress,
       );
       console.log(
         `📊 Initial balance on Chain B: ${ethers.formatEther(
-          initialBalance
-        )} SUP`
+          initialBalance,
+        )} SUP`,
       );
 
       const startTime = Date.now();
@@ -377,14 +377,14 @@ class BridgeInteractionDemo {
 
       while (Date.now() - startTime < timeoutMs) {
         const currentBalance = await this.superTokenBContract.balanceOf(
-          bridgeTransaction.destinationAddress
+          bridgeTransaction.destinationAddress,
         );
 
         if (currentBalance > initialBalance) {
           const receivedAmount = currentBalance - initialBalance;
           console.log(`✅ Tokens arrived on Chain B!`);
           console.log(
-            `📊 New balance: ${ethers.formatEther(currentBalance)} SUP`
+            `📊 New balance: ${ethers.formatEther(currentBalance)} SUP`,
           );
           console.log(`📈 Received: ${ethers.formatEther(receivedAmount)} SUP`);
           console.log(`🎉 Bridge process completed successfully!`);
@@ -430,7 +430,7 @@ class BridgeInteractionDemo {
     console.log("🌉 STARTING BRIDGE USER INTERACTION");
     console.log("===================================");
     console.log(
-      "📝 Note: Make sure the relayer service (index.ts) is running to complete the bridge process"
+      "📝 Note: Make sure the relayer service (index.ts) is running to complete the bridge process",
     );
 
     try {
@@ -454,9 +454,8 @@ class BridgeInteractionDemo {
       await waitForEnter();
 
       // Step 3: User locks tokens on bridge
-      const bridgeTransaction = await this.step3_UserLocksTokensOnBridge(
-        bridgeAmount
-      );
+      const bridgeTransaction =
+        await this.step3_UserLocksTokensOnBridge(bridgeAmount);
 
       console.log("\n✅ USER INTERACTION STEPS COMPLETED!");
       console.log("====================================");

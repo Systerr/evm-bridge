@@ -1,7 +1,7 @@
+import { loadEnvFile } from "node:process";
 import { ethers } from "ethers";
 import fs from "fs/promises";
 import { setTimeout } from "timers/promises";
-import { loadEnvFile } from "node:process";
 import { BRIDGE_A_ABI, BRIDGE_B_ABI } from "./modules/abi.ts";
 import type { Config } from "./modules/config.ts";
 import { loadConfig } from "./modules/config.ts";
@@ -48,13 +48,13 @@ class BridgeRelayer {
     this.bridgeAContract = new ethers.Contract(
       config.bridgeAAddress,
       BRIDGE_A_ABI,
-      this.chainAProvider
+      this.chainAProvider,
     );
 
     this.bridgeBContract = new ethers.Contract(
       config.bridgeBAddress,
       BRIDGE_B_ABI,
-      this.wallet
+      this.wallet,
     );
   }
 
@@ -93,13 +93,13 @@ class BridgeRelayer {
   private createMessageHash(
     recipient: string,
     amount: bigint,
-    nonce: bigint
+    nonce: bigint,
   ): string {
     return ethers.keccak256(
       ethers.solidityPacked(
         ["address", "uint256", "uint256"],
-        [recipient, amount, nonce]
-      )
+        [recipient, amount, nonce],
+      ),
     );
   }
 
@@ -114,7 +114,7 @@ class BridgeRelayer {
    * Process a TokensLocked event
    */
   private async processTokensLockedEvent(
-    event: TokensLockedEvent
+    event: TokensLockedEvent,
   ): Promise<void> {
     const nonceKey = `${event.nonce.toString()}`;
 
@@ -137,7 +137,7 @@ class BridgeRelayer {
       const messageHash = this.createMessageHash(
         event.destinationAddress,
         event.amount,
-        event.nonce
+        event.nonce,
       );
 
       // Sign the message
@@ -150,7 +150,7 @@ class BridgeRelayer {
         event.destinationAddress,
         event.amount,
         event.nonce,
-        signature
+        signature,
       );
 
       console.log(`Submitted transaction to Chain B: ${tx.hash}`);
@@ -160,7 +160,7 @@ class BridgeRelayer {
 
       if (receipt.status === 1) {
         console.log(
-          `✅ Successfully processed nonce ${event.nonce} in block ${receipt.blockNumber}`
+          `✅ Successfully processed nonce ${event.nonce} in block ${receipt.blockNumber}`,
         );
         processedNonces.add(nonceKey);
       } else {
@@ -175,7 +175,7 @@ class BridgeRelayer {
         error.message.includes("Nonce has already been used")
       ) {
         console.log(
-          `Nonce ${event.nonce} already used on Chain B, marking as processed`
+          `Nonce ${event.nonce} already used on Chain B, marking as processed`,
         );
         processedNonces.add(nonceKey);
       } else {
@@ -190,18 +190,18 @@ class BridgeRelayer {
    */
   private async processEventsFromRange(
     fromBlock: number,
-    toBlock: number
+    toBlock: number,
   ): Promise<void> {
     try {
       console.log(
-        `Fetching TokensLocked events from block ${fromBlock} to ${toBlock}`
+        `Fetching TokensLocked events from block ${fromBlock} to ${toBlock}`,
       );
 
       const filter = this.bridgeAContract.filters.TokensLocked();
       const events = await this.bridgeAContract.queryFilter(
         filter,
         fromBlock,
-        toBlock
+        toBlock,
       );
 
       console.log(`Found ${events.length} TokensLocked events`);
@@ -226,7 +226,7 @@ class BridgeRelayer {
     } catch (error) {
       console.error(
         `Error processing events from blocks ${fromBlock}-${toBlock}:`,
-        error
+        error,
       );
       throw error;
     }
@@ -243,7 +243,7 @@ class BridgeRelayer {
       const currentBlock = await this.chainAProvider.getBlockNumber();
       lastProcessedBlock = Math.max(0, currentBlock - 100);
       console.log(
-        `Starting from block ${lastProcessedBlock} (current: ${currentBlock})`
+        `Starting from block ${lastProcessedBlock} (current: ${currentBlock})`,
       );
     }
 
@@ -254,7 +254,7 @@ class BridgeRelayer {
         if (currentBlock > lastProcessedBlock) {
           await this.processEventsFromRange(
             lastProcessedBlock + 1,
-            currentBlock
+            currentBlock,
           );
           lastProcessedBlock = currentBlock;
         }
@@ -283,10 +283,10 @@ class BridgeRelayer {
       const walletAddress = await this.wallet.getAddress();
 
       console.log(
-        `Connected to Chain A: ${chainANetwork.name} (${chainANetwork.chainId})`
+        `Connected to Chain A: ${chainANetwork.name} (${chainANetwork.chainId})`,
       );
       console.log(
-        `Connected to Chain B: ${chainBNetwork.name} (${chainBNetwork.chainId})`
+        `Connected to Chain B: ${chainBNetwork.name} (${chainBNetwork.chainId})`,
       );
       console.log(`Relayer wallet address: ${walletAddress}`);
       console.log(`Bridge A address: ${this.config.bridgeAAddress}`);
@@ -295,12 +295,12 @@ class BridgeRelayer {
       // Check wallet balance
       const balance = await this.chainBProvider.getBalance(walletAddress);
       console.log(
-        `Wallet balance on Chain B: ${ethers.formatEther(balance)} ETH`
+        `Wallet balance on Chain B: ${ethers.formatEther(balance)} ETH`,
       );
 
       if (balance === 0n) {
         console.warn(
-          "⚠️  Warning: Wallet has no balance on Chain B for gas fees"
+          "⚠️  Warning: Wallet has no balance on Chain B for gas fees",
         );
       }
 
