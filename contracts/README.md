@@ -181,6 +181,8 @@ After successful deployment:
 
 # Testing
 
+Project uses hardhat test enviroument for testing
+
 ```bash
 npm test
 ```
