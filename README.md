@@ -66,34 +66,25 @@ For each project you able to check avaialbe commands via
 npm run
 ```
 
-## Contract folder
+Please follow "contract" and "bridge" folder for readme file for each of the project
 
-This folder contains solidity contracts for bridge
+# Instalation
 
-### Super Token
+Each folder contain own instalation process. But on general you need to have nodejs isntallde (version 24)
 
-There are two simple OpenZepelin ERC20 constract. Both with premint amount of token, no any caps (in real workd cap shouls be set, at least max cap)
+```bash
+https://nodejs.org/en/download
+```
 
-SuperToken - simple token
+```bash
+npm i
+```
 
-SuperTokenB - repesent same token on chain B. In additional this is a mintable token by owner or relayer. Secod option mostly to have more security (in case relayer private key will be compomized and final implementation will implement limits of mint tokens with proper monitoring)
+But we defenetely recomenned to use docker compsoe to run efveretrhing
 
-#### Permissions
-
-SuperToken have no special owner methods
-SuperTokenB have two additional permissions - owner and relay address. Both of this users able to mint new tokens. Owner is a EOA in most cases but relay is a smart contract address of bridge that will mint tokens after verify signatures
-
-### Bridge contracts
-
-There are two bridge contracts for chain A and chain B
-
-Bridge.sol have only one permissions - owner. With ability to widwdraw token from brifge
-
-BridgeB.sol have more complicated permission. Owner is one role there, but it also should known bridgeAddress (signer) - address of the system to sign transfers
-
-## Bridge folder
-
-This is a Typescript code to forward messages between chains
+```bash
+docker compose up
+```
 
 # Deploy
 
