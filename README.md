@@ -142,11 +142,11 @@
 
 4. Run demo interaction
 
-```bash
-npm run bridge:terminal
-node node src/simpleInteraction.ts
+  ```bash
+  npm run bridge:terminal
+  node node src/simpleInteraction.ts
 
-```
+  ```
 
 # AI Generation
 
