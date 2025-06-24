@@ -13,7 +13,7 @@
   "license": "ISC",
   "author": "",
   "scripts": {
-    "bridge:logs": "docker compose logs relayer -f",
-    "bridge:terminal": "docker compose exec relayer bash"
+    "relayer:logs": "docker compose logs relayer -f",
+    "relayer:terminal": "docker compose exec relayer bash"
   }
 }

@@ -143,7 +143,7 @@
 4. Run demo interaction
 
    ```bash
-   npm run bridge:terminal
+   npm run relayer:terminal
    node src/simpleInteraction.ts
 
    ```
@@ -490,11 +490,11 @@ Each component has its own set of commands. Check available commands for each co
 **Root level:**
 
 ```bash
-npm run                 # Show available commands
-npm run bridge:terminal # go to relayer terminal
-npm run bridge:logs     # show bridge logs
-docker compose up       # Start all services
-docker compose down     # Stop all services
+npm run                   # Show available commands
+npm run relayer:terminal  # go to relayer terminal
+npm run relayer:logs      # show relayer logs
+docker compose up         # Start all services
+docker compose down       # Stop all services
 ```
 
 **Contracts:**
