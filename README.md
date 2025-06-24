@@ -1,8 +1,107 @@
-# Bridge project
+# Bridge Project
 
 > ⚠️ **WARNING: NOT FOR PRODUCTION USE**
 >
 > This project is for development, testing, and educational purposes only. Do not use this code in production environments. The code may contain security vulnerabilities, bugs, or incomplete features that could result in loss of funds or other critical issues.
+
+## Bridge Working Flow
+
+```
+                    CROSS-CHAIN TOKEN BRIDGE ARCHITECTURE
+                    =====================================
+
+    CHAIN A (Source)                                    CHAIN B (Destination)
+    ┌─────────────────┐                                ┌─────────────────┐
+    │                 │                                │                 │
+    │   SuperToken    │                                │  SuperTokenB    │
+    │   (ERC20)       │                                │  (ERC20+Mint)   │
+    │                 │                                │                 │
+    └─────────────────┘                                └─────────────────┘
+            │                                                    ▲
+            │ 1. transferFrom()                                  │ 5. mint()
+            ▼                                                    │
+    ┌─────────────────┐                                ┌─────────────────┐
+    │                 │                                │                 │
+    │   Bridge.sol    │                                │  BridgeB.sol    │
+    │                 │                                │                 │
+    │ • lockTokens()  │                                │ • releaseTokens │
+    │ • nonce counter │                                │ • signature     │
+    │ • emit events   │                                │   verification  │
+    │                 │                                │ • nonce replay  │
+    └─────────────────┘                                │   protection    │
+            │                                          └─────────────────┘
+            │ 2. TokensLocked Event                              ▲
+            │    (nonce, recipient, amount)                      │
+            ▼                                                    │
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                    OFF-CHAIN BRIDGE SERVICE                         │
+    │                                                                     │
+    │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐              │
+    │  │   Event     │    │  Signature  │    │   Relay     │              │
+    │  │  Listener   │───▶│  Generator  │───▶│  Service    │              │
+    │  │             │    │             │    │             │              │
+    │  └─────────────┘    └─────────────┘    └─────────────┘              │
+    │         │                   │                   │                   │
+    │         │ 3. Detect         │ 4. Sign           │ 6. Submit         │
+    │         │    Events         │    Message        │    Transaction    │
+    └─────────────────────────────────────────────────────────────────────┘
+                                                                    │
+                                                                    │
+                                                                    ▼
+                                            ┌─────────────────────────────┐
+                                            │        USER RECEIVES        │
+                                            │      TOKENS ON CHAIN B      │
+                                            └─────────────────────────────┘
+
+    DETAILED FLOW:
+    ==============
+
+    1. USER LOCKS TOKENS (Chain A)
+       ┌─────────────────────────────────────────────────────────────────┐
+       │ User calls Bridge.lockTokens(amount, recipientOnChainB)         │
+       │ ├─ SuperToken.transferFrom(user, bridge, amount)                │
+       │ ├─ Increment nonce                                              │
+       │ └─ Emit TokensLocked(nonce, recipient, amount)                  │
+       └─────────────────────────────────────────────────────────────────┘
+
+    2. OFF-CHAIN DETECTION
+       ┌─────────────────────────────────────────────────────────────────┐
+       │ Bridge Service monitors TokensLocked events                     │
+       │ ├─ Parse event data (nonce, recipient, amount)                  │
+       │ ├─ Create message hash: keccak256(recipient, amount, nonce)     │
+       │ └─ Sign hash with bridge private key                            │
+       └─────────────────────────────────────────────────────────────────┘
+
+    3. TOKEN RELEASE (Chain B)
+       ┌─────────────────────────────────────────────────────────────────┐
+       │ Anyone calls BridgeB.releaseTokens(recipient, amount, nonce,    │
+       │                                     signature)                  │
+       │ ├─ Verify signature matches bridge address                      │
+       │ ├─ Check nonce not already used (replay protection)             │
+       │ ├─ Mark nonce as used                                           │
+       │ ├─ SuperTokenB.mint(recipient, amount)                          │
+       │ └─ Emit TokensClaimed(nonce, recipient, amount)                 │
+       └─────────────────────────────────────────────────────────────────┘
+
+    SECURITY FEATURES:
+    ==================
+    • Cryptographic signatures prevent unauthorized minting
+    • Nonce-based replay attack protection
+    • Event-driven architecture ensures transparency
+    • Owner-only emergency withdrawal functions
+    • Separate bridge signer key for operational security
+
+    DOCKER SETUP:
+    =============
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+    │   Chain A       │    │   Chain B       │    │  Bridge Service │
+    │  (Port 8545)    │    │  (Port 8546)    │    │   (Node.js)     │
+    │                 │    │                 │    │                 │
+    │ • Anvil Node    │    │ • Anvil Node    │    │ • Event Monitor │
+    │ • Bridge.sol    │    │ • BridgeB.sol   │    │ • Signature Gen │
+    │ • SuperToken    │    │ • SuperTokenB   │    │ • Auto Relay    │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
 # AI generation
 
