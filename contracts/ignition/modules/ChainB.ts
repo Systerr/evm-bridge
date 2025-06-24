@@ -23,7 +23,7 @@ const ChainBModule = buildModule("ChainBModule", (m) => {
     console.warn("Please provide bridgeAddress to bridge smart contract");
   } else {
     // Set BridgeB as relay for SuperTokenB so it can mint tokens
-    m.call(bridgeB, "relayerAddress", [relayersAddress]);
+    m.call(bridgeB, "updateRelayerAddress", [relayersAddress]);
   }
 
   return {
