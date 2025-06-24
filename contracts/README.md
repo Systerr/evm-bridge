@@ -31,7 +31,6 @@ There are two simple OpenZepelin ERC20 constract. Both with premint amount of to
 There are two bridge contracts for chain A and chain B
 
 - `Bridge` have only one permissions - owner. With ability to widwdraw token from brifge
-
 - `BridgeB` have more complicated permission. Owner is one role there, but it also should known bridgeAddress (signer) - address of the system to sign transfers
 
 # Instalitaion

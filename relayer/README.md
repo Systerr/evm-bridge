@@ -70,19 +70,25 @@ PRIVATE_KEY=0x...                       # Relayer private key
 # Optional Configuration
 POLL_INTERVAL=5000                      # Polling interval in milliseconds (default: 5000)
 LAST_BLOCK_FILE=./last_block.txt       # File to store last processed block (default: ./last_block.txt)
+
+# Optional for debug only
+OWNER_A_PRIVATE_KEY=0x..
+DEMO_USER_PRIVATE_KEY=0x...
 ```
 
 ### Environment Variables
 
-| Variable           | Required | Description                                                         |
-| ------------------ | -------- | ------------------------------------------------------------------- |
-| `CHAIN_A_RPC_URL`  | Yes      | RPC endpoint for Chain A (source chain)                             |
-| `CHAIN_B_RPC_URL`  | Yes      | RPC endpoint for Chain B (destination chain)                        |
-| `BRIDGE_A_ADDRESS` | Yes      | Address of BridgeA contract on Chain A                              |
-| `BRIDGE_B_ADDRESS` | Yes      | Address of BridgeB contract on Chain B                              |
-| `PRIVATE_KEY`      | Yes      | Private key of the relayer wallet                                   |
-| `POLL_INTERVAL`    | No       | Polling interval in milliseconds (default: 5000)                    |
-| `LAST_BLOCK_FILE`  | No       | File path to store last processed block (default: ./last_block.txt) |
+| Variable               | Required | Description                                                         |
+| ---------------------- | -------- | ------------------------------------------------------------------- |
+| `CHAIN_A_RPC_URL`      | Yes      | RPC endpoint for Chain A (source chain)                             |
+| `CHAIN_B_RPC_URL`      | Yes      | RPC endpoint for Chain B (destination chain)                        |
+| `BRIDGE_A_ADDRESS`     | Yes      | Address of BridgeA contract on Chain A                              |
+| `BRIDGE_B_ADDRESS`     | Yes      | Address of BridgeB contract on Chain B                              |
+| `PRIVATE_KEY`          | Yes      | Private key of the relayer wallet                                   |
+| `POLL_INTERVAL`        | No       | Polling interval in milliseconds (default: 5000)                    |
+| `LAST_BLOCK_FILE`      | No       | File path to store last processed block (default: ./last_block.txt) |
+| `OWNER_A_PRIVATE_KEY`  | No       | For usage in demo file (e2e interaction from user perspective )     |
+| `DEMO_USER_PRIVATE_KEY`| No       | For usage in demo file (e2e interaction from user perspective )     |
 
 ## Usage
 
@@ -118,7 +124,7 @@ event TokensLocked(
 );
 ```
 
-Instead of pulling possible to use WebSocket connection and reeive events from chaina
+Instead of pulling possible to use WebSocket connection and receive events from chain
 
 ### 2. Message Construction & Signing
 
@@ -144,7 +150,7 @@ function releaseTokens(
 ### 4. State Management
 
 - **Nonce Tracking**: Maintains an in-memory set of processed nonces
-- **Block Persistence**: Saves the last processed block number to file
+- **Block Persistence**: Saves the last processed block number to file (in case emergency stop)
 - **Resume Capability**: On restart, resumes from the last processed block
 
 ## Error Handling

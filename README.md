@@ -193,4 +193,23 @@ In real live you shoud deploy and then configure ENV variables for a real addres
 
 # Deploy
 
-# Testing
+Each component have own deploy mechanics
+
+- contract - uses hardhat ignation module to deploy
+- relayer - can be deployed on docker or directly wiht pm2
+
+Please follow each component documentation for more info
+
+# Moving tokens back to original chain
+
+This part not implemented but idea tha same
+
+- send it to bridgeB
+- bridgeB will lock it or burn (new feature)
+- brideB will emit event
+- relayer will listen for event
+- relayer will send data back to bridgeA to unlock tokens
+
+# Tech details (both contracts and relayer)
+
+## Contracts
